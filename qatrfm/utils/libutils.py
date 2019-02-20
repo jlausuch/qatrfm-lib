@@ -13,6 +13,10 @@ class TrfmDeployError(Exception):
     pass
 
 
+class TrfmDomainTimeout(Exception):
+    pass
+
+
 class TrfmCommandFailed(Exception):
     pass
 
@@ -30,7 +34,7 @@ def execute_bash_cmd(cmd, timeout=300, exit_on_failure=True):
     output = ''
 
     def timer_finished(p):
-        logger.error("Bash command timed out")
+        logger.error("\033[91mBash command timed out\033[0m")
         timer.cancel()
         os.killpg(os.getpgid(p.pid), signal.SIGTERM)
         if exit_on_failure:

@@ -26,7 +26,8 @@ class TerraformEnv(object):
             self.tf_file = tf_file
 
         if (not os.path.isfile(self.tf_file)):
-            self.logger.error("File {} not found.".format(self.tf_file))
+            self.logger.error("\033[1;91mFile {} not found.\033[0m".
+                              format(self.tf_file))
             sys.exit(-1)
         self.logger.debug("Terraform TF file: {}".format(self.tf_file))
         self.num_domains = num_domains
@@ -69,13 +70,12 @@ class TerraformEnv(object):
         cmd = "terraform output -json domain_ips"
         [ret, output] = libutils.execute_bash_cmd(cmd)
         domain_ips = json.loads(output)['value']
+
+        # format of domain_names: ['name1', 'name2']
+        # format of domain_ips: [['10.40.1.81'], ['10.40.1.221']]  or [[],[]]
         i = 0
-        print("LEN IPS1= {}".format(len(domain_ips)))
-        print("LEN IPS2= {}".format(len(domain_ips[0])))
-        print(domain_ips)
-        print(domain_ips[0])
         while i < len(domain_names):
-            if (len(domain_ips[0]) == 0):
+            if (domain_ips[i] == []):
                 ip = '0.0.0.0'
             else:
                 ip = domain_ips[i][0]
@@ -83,19 +83,6 @@ class TerraformEnv(object):
             i += 1
 
         return domains
-
-    @staticmethod
-    def wait_for_domain_ready(domain, timeout=300):
-        i = 0
-        while (i < timeout):
-            try:
-                domain.execute_cmd("hostname")
-                break
-            except libutils.TrfmCommandFailed:
-                pass
-            i += 1
-            time.sleep(1)
-    sys.exit()
 
     def deploy(self):
         """ Deploy Environment
@@ -107,12 +94,12 @@ class TerraformEnv(object):
         at a certain point of the test flow.
         """
 
-        self.logger.info("Deploying Terraform Environment")
+        self.logger.info("\033[1;94mDeploying Terraform Environment\033[0m")
 
         try:
             [ret, output] = libutils.execute_bash_cmd('terraform init')
         except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
-            self.logger.error(e)
+            self.logger.error("\033[1;91m{}\033[0m".format(e))
             self.clean(remove_terraform_env=False)
             sys.exit(-1)
 
@@ -123,26 +110,31 @@ class TerraformEnv(object):
                    format(self.networks[0], self.num_domains))
             [ret, output] = libutils.execute_bash_cmd(cmd, timeout=400)
         except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
-            self.logger.error(e)
+            self.logger.error("\033[1;91m{}\033[0m".format(e))
             self.clean()
             sys.exit(-1)
 
         self.domains = self.get_domains()
+
+        self.logger.debug("\033[1;94mWaiting for domains to be "
+                          "ready...\033[0m")
         for domain in self.domains:
-            self.wait_for_domain_ready(domain)
+            domain.wait_for_ready()
 
         if (self.snapshots):
-            self.logger.debug("Creating snapshots of domains...")
+            self.logger.debug("\033[1;94mCreating snapshots of "
+                              "domains...\033[0m")
             for domain in self.domains:
                 try:
                     domain.snapshot(action='create')
                 except libutils.TrfmSnapshotFailed:
                     sys.exit(-1)
+        self.logger.info("\033[1;92mEnvironment deployed successfully\033[0m")
 
     def reset(self):
         """ Reverts the domains to their initial snapshots """
 
-        self.logger.info("Reseting the Terraform Environment")
+        self.logger.info("\033[1;94mReseting the Terraform Environment\033[0m")
         if (not self.snapshots):
             # Nothing to reset
             return
@@ -155,7 +147,7 @@ class TerraformEnv(object):
                 sys.exit(-1)
 
     def clean(self, remove_terraform_env=True):
-        self.logger.info("Remove Environment")
+        self.logger.info("\033[1;94mRemoving Terraform Environment\033[0m")
         if (remove_terraform_env):
             if (self.snapshots):
                 for domain in self.domains:
@@ -171,10 +163,10 @@ class TerraformEnv(object):
             try:
                 [ret, output] = libutils.execute_bash_cmd(cmd)
             except (libutils.TrfmCommandFailed,
-                    libutils.TrfmCommandFailed) as e:
-                self.logger.error(e)
+                    libutils.TrfmCommandTimeout) as e:
+                self.logger.error("\033[1;91m{}\033[0m".format(e))
                 shutil.rmtree(self.workdir)
                 sys.exit(-1)
 
         shutil.rmtree(self.workdir)
-        self.logger.info("Environment clean")
+        self.logger.info("\033[1;92mEnvironment clean\033[0m")

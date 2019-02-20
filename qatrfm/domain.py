@@ -27,7 +27,7 @@ class Domain(object):
                           .format(self.name, cmd, retcode, output))
 
     def execute_cmd(self, cmd, timeout=300, exit_on_failure=True):
-        self.logger.info("execute_cmd '{}'".format(cmd))
+        self.logger.debug("execute_cmd '{}'".format(cmd))
         str = qau.generate_guest_exec_str(self.name, cmd)
         out_json = libutils.execute_bash_cmd(str)[1]
         pid = qau.get_pid(out_json)
@@ -51,10 +51,22 @@ class Domain(object):
                 return [retcode, output]
             time.sleep(1)
             i += 1
-        self.logger.error("The command '{}' on the domain '{}' timed out."
-                          .format(cmd, self.name))
+        self.logger.error("\033[1;91mThe command '{}' on the domain '{}' "
+                          "timed out.\033[0m".format(cmd, self.name))
         if (exit_on_failure):
             raise libutils.TrfmCommandTimeout
+
+    def wait_for_ready(self, timeout=300):
+        i = 0
+        while (i < int(timeout / 10)):
+            try:
+                self.execute_cmd("hostname")
+                self.logger.debug("Domain '{}' ready".format(self.name))
+                return
+            except libutils.TrfmCommandFailed:
+                i += 1
+                time.sleep(10)
+        raise libutils.TrfmDomainTimeout
 
     def snapshot(self, action):
         if (action == 'create'):
@@ -69,8 +81,8 @@ class Domain(object):
         try:
             [ret, output] = libutils.execute_bash_cmd(cmd)
         except libutils.TrfmCommandFailed as e:
-            self.logger.error("Failed to {} snapshot of domain {}.".
-                              format(action, self.name))
+            self.logger.error("\033[1;91mFailed to {} snapshot of domain "
+                              "{}.\033[0m".format(action, self.name))
             raise libutils.TrfmSnapshotFailed(e)
 
     def copy_file(self, source_path, target_path):

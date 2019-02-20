@@ -27,8 +27,10 @@ class Logger:
         self.logger.setLevel(logging.DEBUG)
 
         ch = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s - %(name)s - '
-                                      '%(levelname)s - %(message)s')
+        # formatter = logging.Formatter('%(asctime)s - %(name)s - '
+        #                               '%(levelname)s - %(message)s')
+        formatter = logging.Formatter("\033[1;30mqatrfm.%(levelname)s: \033[0m"
+                                      "%(message)s")
         ch.setFormatter(formatter)
         if level.lower() == "debug":
             ch.setLevel(logging.DEBUG)
