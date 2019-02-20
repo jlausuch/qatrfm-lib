@@ -4,6 +4,7 @@ import os
 
 from qatrfm.utils.logger import Logger
 
+
 class TrfmTestCase(object):
     EX_OK = os.EX_OK
     """execution successful"""

@@ -2,10 +2,12 @@ variable "count" {
     default = "2"
 }
 
+variable "network" {
+}
+
 provider "libvirt" {
      uri = "qemu:///system"
 }
-
 
 resource "random_id" "service" {
     count = "${var.count}"
@@ -13,7 +15,7 @@ resource "random_id" "service" {
 }
 
 resource "libvirt_volume" "myvdisk" {
-  name = "terraform-vdisk-${element(random_id.service.*.hex, count.index)}.qcow2"
+  name = "qatrfm-vdisk-${element(random_id.service.*.hex, count.index)}.qcow2"
   count = "${var.count}"
   pool = "default"
   source = "/var/lib/libvirt/images/sle-15-SP1-x86_64-158.4-autoboot@64bit.qcow2"
@@ -21,22 +23,29 @@ resource "libvirt_volume" "myvdisk" {
 }
 
 resource "libvirt_network" "my_net" {
-   name = "terraform-net-${element(random_id.service.*.hex, count.index)}"
-   addresses = ["10.0.10.0/24"]
+   name = "qatrfm-net-${element(random_id.service.*.hex, count.index)}"
+   addresses = ["${var.network}"]
    dhcp {
-		enabled = true
+		enabled = false
 	}
 }
 
 resource "libvirt_domain" "domain-sle" {
-  name = "terraform-vm-${element(random_id.service.*.hex, count.index)}"
+  name = "qatrfm-vm-${element(random_id.service.*.hex, count.index)}"
   memory = "2048"
   vcpu = 2
   count = "${var.count}"
 
   network_interface {
     network_id = "${libvirt_network.my_net.id}"
-    wait_for_lease = true
+    wait_for_lease = false
+    addresses = ["0.0.0.0"]
+  }
+
+  network_interface {
+    network_id = "${libvirt_network.my_net.id}"
+    wait_for_lease = false
+    addresses = ["0.0.0.0"]
   }
 
   disk {
@@ -62,12 +71,10 @@ resource "libvirt_domain" "domain-sle" {
   }
 }
 
-output "vm_ips" {
+output "domain_ips" {
     value = "${libvirt_domain.domain-sle.*.network_interface.0.addresses}"
 }
 
-output "vm_names" {
+output "domain_names" {
     value = "${libvirt_domain.domain-sle.*.name}"
 }
-
-

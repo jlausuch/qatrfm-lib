@@ -18,6 +18,14 @@ class Domain(object):
     def login(self):
         self.logger.info("Login")
 
+    def _print_log(self, cmd, retcode=None, output=None):
+        self.logger.debug("Qemu agent command status:\n"
+                          "DOMAIN  : {}\n"
+                          "CMD     : {}\n"
+                          "RETCODE : {}\n"
+                          "OUTPUT  :\n{}\n"
+                          .format(self.name, cmd, retcode, output))
+
     def execute_cmd(self, cmd, timeout=300, exit_on_failure=True):
         self.logger.info("execute_cmd '{}'".format(cmd))
         str = qau.generate_guest_exec_str(self.name, cmd)
@@ -33,24 +41,37 @@ class Domain(object):
                 output = qau.get_output(out_json)
                 if (retcode != 0):
                     err_data = qau.get_output(out_json, 'err-data')
-                    self.logger.error("The command failed with exit code {}. "
-                                      "Reason:\n  {}"
-                                      .format(retcode, err_data))
+                    self._print_log(cmd, retcode, err_data)
                     if (exit_on_failure):
-                        raise libutils.TrfmCommandFailed()
+                        raise libutils.TrfmCommandFailed
                 else:
-                    self.logger.debug("The command '{}' on the domain '{}' "
-                                      "succedded.\nOUTPUT:\n{}"
-                                      .format(cmd, self.name, output))
+                    self._print_log(cmd, retcode, output)
                 if (retcode != 0 and exit_on_failure):
-                    raise libutils.TrfmCommandFailed()
+                    raise libutils.TrfmCommandFailed
                 return [retcode, output]
             time.sleep(1)
             i += 1
         self.logger.error("The command '{}' on the domain '{}' timed out."
                           .format(cmd, self.name))
         if (exit_on_failure):
-            raise libutils.TrfmCommandTimeout()
+            raise libutils.TrfmCommandTimeout
+
+    def snapshot(self, action):
+        if (action == 'create'):
+            cmd = ("virsh snapshot-create-as {} --name {}-snapshot"
+                   .format(self.name, self.name))
+        elif (action == 'delete'):
+            cmd = ("virsh snapshot-delete {} --current".
+                   format(self.name, self.name))
+        elif (action == 'revert'):
+            cmd = ("virsh snapshot-revert {} --current".
+                   format(self.name, self.name))
+        try:
+            [ret, output] = libutils.execute_bash_cmd(cmd)
+        except libutils.TrfmCommandFailed as e:
+            self.logger.error("Failed to {} snapshot of domain {}.".
+                              format(action, self.name))
+            raise libutils.TrfmSnapshotFailed(e)
 
     def copy_file(self, source_path, target_path):
         self.logger.info("copy local file from {} to {}"

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-import shlex
+
+import os
+import signal
 import subprocess
 from threading import Timer
 
@@ -10,31 +12,42 @@ logger = Logger(__name__).getLogger()
 class TrfmDeployError(Exception):
     pass
 
+
 class TrfmCommandFailed(Exception):
     pass
+
 
 class TrfmCommandTimeout(Exception):
     pass
 
 
-def execute_bash_cmd(cmd, timeout = 300, exit_on_failure = True):
+class TrfmSnapshotFailed(Exception):
+    pass
+
+
+def execute_bash_cmd(cmd, timeout=300, exit_on_failure=True):
     logger.debug("Bash command: '{}'".format(cmd))
-    p = subprocess.Popen(shlex.split(cmd), shell=False,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    try:
-        output = p.communicate(timeout=timeout)[0].decode("utf-8")
-        retcode = p.wait()
-        if (retcode != 0 and exit_on_failure):
-            raise TrfmCommandFailed("Bash command '{}' failed. Reason:\n"
-                "{}".format(cmd, output))
-        else:
-            logger.debug("Bash command result:\n RET CODE: {}\n OUTPUT:\n{}".format(retcode, output))
-            return [retcode, output]
-    except subprocess.TimeoutExpired:
-        p.kill()
-        if (exit_on_failure):
-            raise TrfmCommandTimeout("The bash command '{}' timed out.".format(cmd))
+    output = ''
 
+    def timer_finished(p):
+        logger.error("Bash command timed out")
+        timer.cancel()
+        os.killpg(os.getpgid(p.pid), signal.SIGTERM)
+        if exit_on_failure:
+            raise TrfmCommandTimeout(output)
+        return [-1, output]
 
-    
-    
+    p = subprocess.Popen(cmd, shell=True,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT)
+    timer = Timer(timeout, timer_finished, args=[p])
+    timer.start()
+    for line in iter(p.stdout.readline, b''):
+        output += line.decode("utf-8")
+        print(line.rstrip().decode("utf-8"))
+    p.stdout.close()
+    retcode = p.wait()
+    timer.cancel()
+    if (retcode != 0 and exit_on_failure):
+        raise TrfmCommandFailed(output)
+    return [retcode, output]
