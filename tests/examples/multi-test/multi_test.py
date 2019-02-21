@@ -33,8 +33,7 @@ class TestCase2(TrfmTestCase):
 
 
 def main():
-    hdd = ("/var/lib/libvirt/images/"
-           "sle-15-SP1-x86_64-175.1-autoboot@64bit.qcow2")
+    hdd = ("/var/lib/libvirt/images/my_image.qcow2")
     env = TerraformEnv(image=hdd, num_domains=2, snapshots=True)
     env.deploy()
     exit_status = TrfmTestCase.EX_OK
