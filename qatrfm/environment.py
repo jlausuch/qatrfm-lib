@@ -101,7 +101,10 @@ class TerraformEnv(object):
         self.logger.info("Deploying Terraform Environment ...")
 
         try:
-            [ret, output] = libutils.execute_bash_cmd('terraform init')
+            cmd = 'terraform init'
+            if ('LOG_COLORS' not in os.environ):
+                cmd = ("{} -no-color".format(cmd))
+            [ret, output] = libutils.execute_bash_cmd(cmd)
         except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
             self.logger.error(e)
             self.clean(remove_terraform_env=False)
@@ -115,6 +118,8 @@ class TerraformEnv(object):
                    "-var \"count={}\"".
                    format(self.basename, self.image,
                           self.networks[0], self.num_domains))
+            if ('LOG_COLORS' not in os.environ):
+                cmd = ("{} -no-color".format(cmd))
             [ret, output] = libutils.execute_bash_cmd(cmd, timeout=400)
         except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
             self.logger.error(e)
@@ -171,6 +176,8 @@ class TerraformEnv(object):
                    "-var \"count={}\"".
                    format(self.basename, self.image,
                           self.networks[0], self.num_domains))
+            if ('LOG_COLORS' not in os.environ):
+                cmd = ("{} -no-color".format(cmd))
             try:
                 [ret, output] = libutils.execute_bash_cmd(cmd)
             except (libutils.TrfmCommandFailed,
