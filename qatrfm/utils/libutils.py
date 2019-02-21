@@ -52,7 +52,7 @@ def execute_bash_cmd(cmd, timeout=300, exit_on_failure=True):
     timer.start()
     for line in iter(p.stdout.readline, b''):
         output += line.decode("utf-8")
-        print(line.rstrip().decode("utf-8"))
+        logger.debug(line.rstrip().decode("utf-8"))
     p.stdout.close()
     retcode = p.wait()
     timer.cancel()

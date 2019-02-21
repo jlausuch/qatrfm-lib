@@ -6,7 +6,7 @@ import logging
 class QaTrfmLogger(logging.Logger):
 
     def __init__(self, logger_name, level="DEBUG"):
-        format = "\033[1;37;48mqatrfm.%(levelname)s: \033[0m%(message)s"
+        format = "\033[37;48mqatrfm.%(levelname)s: \033[0m%(message)s"
         logging.basicConfig(level=logging.DEBUG, format=format)
         return super(QaTrfmLogger, self).__init__(logger_name, level)
 

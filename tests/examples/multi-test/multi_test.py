@@ -5,6 +5,10 @@ import sys
 from qatrfm.environment import TerraformEnv
 from qatrfm.testcase import TrfmTestCase
 
+from qatrfm.utils.logger import QaTrfmLogger
+
+logger = QaTrfmLogger.getQatrfmLogger(__name__)
+
 
 class TestCase1(TrfmTestCase):
     def run(self):
@@ -50,12 +54,12 @@ def main():
             exit_status = TrfmTestCase.EX_RUN_ERROR
 
     except Exception as e:
-        print("Something went wrong:\n{}".format(e))
+        logger.error("Something went wrong:\n{}".format(e))
         env.clean()
         sys.exit(TrfmTestCase.EX_RUN_ERROR)
 
     env.clean()
-    print("The test finished with status={}".format(exit_status))
+    logger.info("The test finished with status={}".format(exit_status))
     sys.exit(exit_status)
 
 
