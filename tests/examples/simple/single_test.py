@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import time
 import sys
 
 from qatrfm.environment import TerraformEnv
@@ -11,19 +12,22 @@ class MyTestCase(TrfmTestCase):
         # test logic here
         self.logger.info('Running test case {}'.format(self.name))
         vm1 = self.env.domains[0]
-        vm2 = self.env.domains[1]
-        [retcode, output] = vm1.execute_cmd('ping -c 1 {}'.format(vm2.ip))
-        return self.EX_OK
+        # Stop firewall to allow SSH transfers
+        # It could be also disabled by default in the image
+        # [retcode, output] = vm1.execute_cmd('systemctl stop firewalld')
+        # time.sleep(20)
+        vm1.transfer_file(remote_file_path='/etc/resolv.conf',
+                          local_file_path='/root/test.resolv.conf',
+                          type='get')
 
 
 def main():
-
-    env = TerraformEnv(num_domains=2)
+    env = TerraformEnv(num_domains=1)
     env.deploy()
     exit_status = TrfmTestCase.EX_OK
 
     try:
-        test = MyTestCase(env, 'test', 'simple ping from VM1 to VM2')
+        test = MyTestCase(env, 'simple_test', 'Create a VM and transfer files')
         if (test.run() != TrfmTestCase.EX_OK):
             exit_status = TrfmTestCase.EX_RUN_ERROR
 

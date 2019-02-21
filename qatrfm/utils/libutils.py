@@ -17,6 +17,10 @@ class TrfmDomainTimeout(Exception):
     pass
 
 
+class TrfmDomainNotReachable(Exception):
+    pass
+
+
 class TrfmCommandFailed(Exception):
     pass
 

@@ -18,7 +18,7 @@ resource "libvirt_volume" "myvdisk" {
   name = "qatrfm-vdisk-${element(random_id.service.*.hex, count.index)}.qcow2"
   count = "${var.count}"
   pool = "default"
-  source = "/var/lib/libvirt/images/sle-15-SP1-x86_64-158.4-autoboot@64bit.qcow2"
+  source = "/var/lib/libvirt/images/sle-15-SP1-x86_64-174.1-autoboot@64bit.qcow2"
   format = "qcow2"
 }
 

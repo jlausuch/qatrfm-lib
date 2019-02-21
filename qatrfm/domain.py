@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import paramiko
 import time
 
 from qatrfm.utils import logger
@@ -11,9 +12,11 @@ class Domain(object):
 
     logger = logger.Logger(__name__).getLogger()
 
-    def __init__(self, name, ip):
+    def __init__(self, name, ip=None, user='root', pwd='nots3cr3t'):
         self.name = name
         self.ip = ip
+        self.user = user
+        self.pwd = pwd
 
     def login(self):
         self.logger.info("Login")
@@ -56,17 +59,43 @@ class Domain(object):
         if (exit_on_failure):
             raise libutils.TrfmCommandTimeout
 
-    def wait_for_ready(self, timeout=300):
+    def wait_for_qemu_agent_ready(self, timeout=300):
         i = 0
         while (i < int(timeout / 10)):
             try:
                 self.execute_cmd("hostname")
-                self.logger.debug("Domain '{}' ready".format(self.name))
+                self.logger.debug("Qemu agent ready on '{}'".format(self.name))
                 return
             except libutils.TrfmCommandFailed:
                 i += 1
                 time.sleep(10)
         raise libutils.TrfmDomainTimeout
+
+    def wait_for_ip_ready(self, timeout=300):
+        i = 0
+        while (i < int(timeout / 10)):
+            try:
+                cmd = "ping -c 1 {}".format(self.ip)
+                [ret, output] = libutils.execute_bash_cmd(cmd)
+                self.logger.debug("IP '{}' reachable".format(self.ip))
+                return
+            except libutils.TrfmCommandFailed:
+                i += 1
+                time.sleep(10)
+        raise libutils.TrfmDomainTimeout
+
+    def wait_for_ssh_ready(self, timeout=300):
+        i = 0
+        while (i < int(timeout / 10)):
+            try:
+                cmd = "nc -vz -w 1 {} 22".format(self.ip)
+                [ret, output] = libutils.execute_bash_cmd(cmd)
+                self.logger.debug("SSH on port 22 reachable")
+                return
+            except libutils.TrfmCommandFailed:
+                i += 1
+                time.sleep(10)
+        self.logger.warning("SSH is not available on the domain.")
 
     def snapshot(self, action):
         if (action == 'create'):
@@ -85,6 +114,43 @@ class Domain(object):
                               "{}.\033[0m".format(action, self.name))
             raise libutils.TrfmSnapshotFailed(e)
 
-    def copy_file(self, source_path, target_path):
-        self.logger.info("copy local file from {} to {}"
-                         .format(source_path, target_path))
+    def transfer_file(self, remote_file_path, local_file_path, type='get'):
+        if (self.ip is None):
+            raise libutils.TrfmDomainNotReachable(
+                "The domain doesn't have an IP defined")
+        self.logger.debug("Transfer file:\n"
+                          " domain: {}\n"
+                          " ip:     {}\n"
+                          " type:   {}\n"
+                          " remote_file_path: {}\n"
+                          " local_file_path:  {}"
+                          .format(self.name, self.ip, type,
+                                  remote_file_path, local_file_path))
+        try:
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
+            ssh.connect(hostname=self.ip,
+                        username=self.user,
+                        password=self.pwd)
+            sftp_client = ssh.open_sftp()
+            if (type == 'get'):
+                sftp_client.get(remote_file_path, local_file_path)
+            elif (type == 'put'):
+                sftp_client.put(local_file_path, remote_file_path)
+            sftp_client.close()
+            ssh.close()
+            self.logger.debug("File Transfer succedded.")
+        except paramiko.ssh_exception.NoValidConnectionsError as e:
+            ssh.close()
+            self.logger.error("\033[1;91mCan't reach IP {} on port "
+                              "22.\n{}\033[0m".format(self.ip, e))
+            raise(e)
+        except paramiko.ssh_exception.AuthenticationException as e:
+            ssh.close()
+            self.logger.error("\033[1;91mWrong user/password for "
+                              "the Domain {}.\033[0m".format(self.name))
+            raise(e)
+        except FileNotFoundError as e:
+            self.logger.error(e)
+            sftp_client.close()
+            raise(e)

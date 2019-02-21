@@ -76,7 +76,7 @@ class TerraformEnv(object):
         i = 0
         while i < len(domain_names):
             if (domain_ips[i] == []):
-                ip = '0.0.0.0'
+                ip = None
             else:
                 ip = domain_ips[i][0]
             domains.append(Domain(domain_names[i], ip))
@@ -119,7 +119,10 @@ class TerraformEnv(object):
         self.logger.debug("\033[1;94mWaiting for domains to be "
                           "ready...\033[0m")
         for domain in self.domains:
-            domain.wait_for_ready()
+            domain.wait_for_qemu_agent_ready()
+            if (domain.ip is not None):
+                domain.wait_for_ip_ready()
+                domain.wait_for_ssh_ready()
 
         if (self.snapshots):
             self.logger.debug("\033[1;94mCreating snapshots of "
