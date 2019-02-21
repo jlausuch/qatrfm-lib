@@ -1,45 +1,36 @@
 #!/usr/bin/env python
 
-# Logging levels:
-#  Level     Numeric value
-#  CRITICAL  50
-#  ERROR     40
-#  WARNING   30
-#  INFO      20
-#  DEBUG     10
-#  NOTSET    0
-#
-# Usage:
-#  import RelengLogger as rl
-#  logger = fl.Logger("script_name").getLogger()
-#  logger.info("message to be shown with - INFO - ")
-#  logger.debug("message to be shown with - DEBUG -")
-
 import logging
 
 
-class Logger:
+class QaTrfmLogger(logging.Logger):
 
     def __init__(self, logger_name, level="DEBUG"):
+        format = "\033[1;30mqatrfm.%(levelname)s: \033[0m%(message)s"
+        logging.basicConfig(level=logging.DEBUG, format=format)
+        return super(QaTrfmLogger, self).__init__(logger_name, level)
 
-        self.logger = logging.getLogger(logger_name)
-        self.logger.propagate = 0
-        self.logger.setLevel(logging.DEBUG)
+    def info(self, msg, *args, **kwargs):
+        msg = ("\033[1;34m{}\033[0m".format(msg))
+        super(QaTrfmLogger, self).info(msg, *args, **kwargs)
 
-        ch = logging.StreamHandler()
-        formatter = logging.Formatter("\033[1;30mqatrfm.%(levelname)s: \033[0m"
-                                      "%(message)s")
-        ch.setFormatter(formatter)
-        if level.lower() == "debug":
-            ch.setLevel(logging.DEBUG)
-        else:
-            ch.setLevel(logging.INFO)
-        self.logger.addHandler(ch)
+    def success(self, msg, *args, **kwargs):
+        msg = ("\033[1;32m{}\033[0m".format(msg))
+        super(QaTrfmLogger, self).info(msg, *args, **kwargs)
 
-        hdlr = logging.FileHandler('/tmp/releng.log')
-        hdlr.setFormatter(formatter)
-        hdlr.setLevel(logging.DEBUG)
-        self.logger.addHandler(hdlr)
+    def error(self, msg, *args, **kwargs):
+        msg = ("\033[1;31m{}\033[0m".format(msg))
+        super(QaTrfmLogger, self).error(msg, *args, **kwargs)
 
-    def getLogger(self):
-        return self.logger
+    def warning(self, msg, *args, **kwargs):
+        msg = ("\033[1;33m{}\033[0m".format(msg))
+        super(QaTrfmLogger, self).warning(msg, *args, **kwargs)
+
+    @staticmethod
+    def getQatrfmLogger(name):
+        return logging.getLogger(name)
+
+
+logging.setLoggerClass(QaTrfmLogger)
+logging.getLogger("paramiko.transport").setLevel(logging.WARNING)
+logging.getLogger("paramiko.transport.sftp").setLevel(logging.WARNING)

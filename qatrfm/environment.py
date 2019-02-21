@@ -9,20 +9,19 @@ import sys
 import time
 
 from qatrfm.domain import Domain
-from qatrfm.utils.logger import Logger
+from qatrfm.utils.logger import QaTrfmLogger
 from qatrfm.utils import libutils
 
 
 class TerraformEnv(object):
 
-    logger = Logger(__name__).getLogger()
+    logger = QaTrfmLogger.getQatrfmLogger(__name__)
     BASEDIR = '/root/terraform/'
 
     def __init__(self, image, tf_file=None, num_domains=1, snapshots=False):
         self.image = image
         if (not os.path.isfile(self.image)):
-            self.logger.error("\033[1;91mFile {} not found.\033[0m".
-                              format(self.image))
+            self.logger.error("File {} not found.".format(self.image))
             sys.exit(-1)
 
         if (tf_file is None):
@@ -32,8 +31,7 @@ class TerraformEnv(object):
             self.tf_file = tf_file
 
         if (not os.path.isfile(self.tf_file)):
-            self.logger.error("\033[1;91mFile {} not found.\033[0m".
-                              format(self.tf_file))
+            self.logger.error("File {} not found.".format(self.tf_file))
             sys.exit(-1)
         self.logger.debug("Terraform TF file: {}".format(self.tf_file))
         self.num_domains = num_domains
@@ -100,12 +98,12 @@ class TerraformEnv(object):
         at a certain point of the test flow.
         """
 
-        self.logger.info("\033[1;94mDeploying Terraform Environment\033[0m")
+        self.logger.info("Deploying Terraform Environment ...")
 
         try:
             [ret, output] = libutils.execute_bash_cmd('terraform init')
         except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
-            self.logger.error("\033[1;91m{}\033[0m".format(e))
+            self.logger.error(e)
             self.clean(remove_terraform_env=False)
             sys.exit(-1)
 
@@ -119,14 +117,13 @@ class TerraformEnv(object):
                           self.networks[0], self.num_domains))
             [ret, output] = libutils.execute_bash_cmd(cmd, timeout=400)
         except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
-            self.logger.error("\033[1;91m{}\033[0m".format(e))
+            self.logger.error(e)
             self.clean()
             sys.exit(-1)
 
         self.domains = self.get_domains()
 
-        self.logger.debug("\033[1;94mWaiting for domains to be "
-                          "ready...\033[0m")
+        self.logger.info("Waiting for domains to be ready...")
         for domain in self.domains:
             domain.wait_for_qemu_agent_ready()
             if (domain.ip is not None):
@@ -134,19 +131,18 @@ class TerraformEnv(object):
                 domain.wait_for_ssh_ready()
 
         if (self.snapshots):
-            self.logger.debug("\033[1;94mCreating snapshots of "
-                              "domains...\033[0m")
+            self.logger.debug("Creating snapshots of domains...")
             for domain in self.domains:
                 try:
                     domain.snapshot(action='create')
                 except libutils.TrfmSnapshotFailed:
                     sys.exit(-1)
-        self.logger.info("\033[1;92mEnvironment deployed successfully\033[0m")
+        self.logger.success("Environment deployed successfully.")
 
     def reset(self):
         """ Reverts the domains to their initial snapshots """
 
-        self.logger.info("\033[1;94mReseting the Terraform Environment\033[0m")
+        self.logger.info("Reseting the Terraform Environment...")
         if (not self.snapshots):
             # Nothing to reset
             return
@@ -159,7 +155,7 @@ class TerraformEnv(object):
                 sys.exit(-1)
 
     def clean(self, remove_terraform_env=True):
-        self.logger.info("\033[1;94mRemoving Terraform Environment\033[0m")
+        self.logger.info("Removing Terraform Environment...")
         if (remove_terraform_env):
             if (self.snapshots):
                 for domain in self.domains:
@@ -179,9 +175,9 @@ class TerraformEnv(object):
                 [ret, output] = libutils.execute_bash_cmd(cmd)
             except (libutils.TrfmCommandFailed,
                     libutils.TrfmCommandTimeout) as e:
-                self.logger.error("\033[1;91m{}\033[0m".format(e))
+                self.logger.error(e)
                 shutil.rmtree(self.workdir)
                 sys.exit(-1)
 
         shutil.rmtree(self.workdir)
-        self.logger.info("\033[1;92mEnvironment clean\033[0m")
+        self.logger.success("Environment clean")

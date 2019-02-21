@@ -5,8 +5,8 @@ import signal
 import subprocess
 from threading import Timer
 
-from qatrfm.utils.logger import Logger
-logger = Logger(__name__).getLogger()
+from qatrfm.utils.logger import QaTrfmLogger
+logger = QaTrfmLogger.getQatrfmLogger(__name__)
 
 
 class TrfmDeployError(Exception):
@@ -38,7 +38,7 @@ def execute_bash_cmd(cmd, timeout=300, exit_on_failure=True):
     output = ''
 
     def timer_finished(p):
-        logger.error("\033[91mBash command timed out\033[0m")
+        logger.error("Bash command timed out")
         timer.cancel()
         os.killpg(os.getpgid(p.pid), signal.SIGTERM)
         if exit_on_failure:

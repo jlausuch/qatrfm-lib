@@ -9,12 +9,8 @@ from qatrfm.testcase import TrfmTestCase
 class MyTestCase(TrfmTestCase):
     def run(self):
         # test logic here
-        self.logger.info('Running test case {}'.format(self.name))
+        self.logger.info("Running test case '{}' ...".format(self.name))
         vm1 = self.env.domains[0]
-        # Stop firewall to allow SSH transfers
-        # It could be also disabled by default in the image
-        # [retcode, output] = vm1.execute_cmd('systemctl stop firewalld')
-        # time.sleep(20)
         vm1.transfer_file(remote_file_path='/etc/resolv.conf',
                           local_file_path='/root/test.resolv.conf',
                           type='get')

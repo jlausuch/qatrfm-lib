@@ -3,14 +3,14 @@
 import paramiko
 import time
 
-from qatrfm.utils import logger
+from qatrfm.utils.logger import QaTrfmLogger
 from qatrfm.utils import libutils
 from qatrfm.utils import qemu_agent_utils as qau
 
 
 class Domain(object):
 
-    logger = logger.Logger(__name__).getLogger()
+    logger = QaTrfmLogger.getQatrfmLogger(__name__)
 
     def __init__(self, name, ip=None, user='root', pwd='nots3cr3t'):
         self.name = name
@@ -54,8 +54,8 @@ class Domain(object):
                 return [retcode, output]
             time.sleep(1)
             i += 1
-        self.logger.error("\033[1;91mThe command '{}' on the domain '{}' "
-                          "timed out.\033[0m".format(cmd, self.name))
+        self.logger.error("The command '{}' on the domain '{}' timed out.".
+                          format(cmd, self.name))
         if (exit_on_failure):
             raise libutils.TrfmCommandTimeout
 
@@ -110,8 +110,8 @@ class Domain(object):
         try:
             [ret, output] = libutils.execute_bash_cmd(cmd)
         except libutils.TrfmCommandFailed as e:
-            self.logger.error("\033[1;91mFailed to {} snapshot of domain "
-                              "{}.\033[0m".format(action, self.name))
+            self.logger.error("Failed to {} snapshot of domain {}."
+                              .format(action, self.name))
             raise libutils.TrfmSnapshotFailed(e)
 
     def transfer_file(self, remote_file_path, local_file_path, type='get'):
@@ -142,13 +142,13 @@ class Domain(object):
             self.logger.debug("File Transfer succedded.")
         except paramiko.ssh_exception.NoValidConnectionsError as e:
             ssh.close()
-            self.logger.error("\033[1;91mCan't reach IP {} on port "
-                              "22.\n{}\033[0m".format(self.ip, e))
+            self.logger.error("Can't reach IP {} on port 22.\n{}".
+                              format(self.ip, e))
             raise(e)
         except paramiko.ssh_exception.AuthenticationException as e:
             ssh.close()
-            self.logger.error("\033[1;91mWrong user/password for "
-                              "the Domain {}.\033[0m".format(self.name))
+            self.logger.error("Wrong user/password for the Domain {}.".
+                              format(self.name))
             raise(e)
         except FileNotFoundError as e:
             self.logger.error(e)

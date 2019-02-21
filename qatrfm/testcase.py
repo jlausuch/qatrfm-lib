@@ -2,7 +2,7 @@
 
 import os
 
-from qatrfm.utils.logger import Logger
+from qatrfm.utils.logger import QaTrfmLogger
 
 
 class TrfmTestCase(object):
@@ -16,7 +16,7 @@ class TrfmTestCase(object):
         self.env = env
         self.name = name
         self.description = description
-        self.logger = Logger(self.name).getLogger()
+        self.logger = QaTrfmLogger.getQatrfmLogger(self.name)
 
     def run(self):
         # to ve overriden by the children
