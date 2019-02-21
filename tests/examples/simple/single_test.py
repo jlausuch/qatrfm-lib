@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import time
 import sys
 
 from qatrfm.environment import TerraformEnv
@@ -22,7 +21,9 @@ class MyTestCase(TrfmTestCase):
 
 
 def main():
-    env = TerraformEnv(num_domains=1)
+    hdd = ("/var/lib/libvirt/images/"
+           "sle-15-SP1-x86_64-174.1-autoboot@64bit.qcow2")
+    env = TerraformEnv(image=hdd, num_domains=1)
     env.deploy()
     exit_status = TrfmTestCase.EX_OK
 

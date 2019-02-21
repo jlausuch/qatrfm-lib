@@ -17,10 +17,12 @@ class MyTestCase(TrfmTestCase):
 
 
 def main():
+    hdd = ("/var/lib/libvirt/images/"
+           "sle-15-SP1-x86_64-174.1-autoboot@64bit.qcow2")
     path = os.path.dirname(os.path.realpath(__file__))
     tf_file = ("{}/{}".format(path, 'custom.tf'))
 
-    env = TerraformEnv(tf_file=tf_file, num_domains=1)
+    env = TerraformEnv(image=hdd, tf_file=tf_file, num_domains=1)
     env.deploy()
     exit_status = TrfmTestCase.EX_OK
 

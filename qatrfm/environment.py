@@ -18,7 +18,13 @@ class TerraformEnv(object):
     logger = Logger(__name__).getLogger()
     BASEDIR = '/root/terraform/'
 
-    def __init__(self, tf_file=None, num_domains=1, snapshots=False):
+    def __init__(self, image, tf_file=None, num_domains=1, snapshots=False):
+        self.image = image
+        if (not os.path.isfile(self.image)):
+            self.logger.error("\033[1;91mFile {} not found.\033[0m".
+                              format(self.image))
+            sys.exit(-1)
+
         if (tf_file is None):
             path = os.path.dirname(os.path.realpath(__file__))
             self.tf_file = ("{}/config/simple_1net.tf".format(path))
@@ -105,9 +111,10 @@ class TerraformEnv(object):
 
         try:
             cmd = ("terraform apply -auto-approve "
+                   "-var \"image={}\" "
                    "-var \"network={}\" "
                    "-var \"count={}\"".
-                   format(self.networks[0], self.num_domains))
+                   format(self.image, self.networks[0], self.num_domains))
             [ret, output] = libutils.execute_bash_cmd(cmd, timeout=400)
         except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
             self.logger.error("\033[1;91m{}\033[0m".format(e))
@@ -160,9 +167,10 @@ class TerraformEnv(object):
                         shutil.rmtree(self.workdir)
                         sys.exit(-1)
             cmd = ("terraform destroy -auto-approve "
+                   "-var \"image={}\" "
                    "-var \"network={}\" "
                    "-var \"count={}\"".
-                   format(self.networks[0], self.num_domains))
+                   format(self.image, self.networks[0], self.num_domains))
             try:
                 [ret, output] = libutils.execute_bash_cmd(cmd)
             except (libutils.TrfmCommandFailed,
