@@ -23,10 +23,10 @@ class Domain(object):
 
     def _print_log(self, cmd, retcode=None, output=None):
         self.logger.debug("Qemu agent command status:\n"
-                          "DOMAIN  : {}\n"
-                          "CMD     : {}\n"
-                          "RETCODE : {}\n"
-                          "OUTPUT  :\n{}\n"
+                          "\t\tDOMAIN  : {}\n"
+                          "\t\tCMD     : {}\n"
+                          "\t\tRETCODE : {}\n"
+                          "\t\tOUTPUT  :\n{}\n"
                           .format(self.name, cmd, retcode, output))
 
     def execute_cmd(self, cmd, timeout=300, exit_on_failure=True):
@@ -119,11 +119,11 @@ class Domain(object):
             raise libutils.TrfmDomainNotReachable(
                 "The domain doesn't have an IP defined")
         self.logger.debug("Transfer file:\n"
-                          " domain: {}\n"
-                          " ip:     {}\n"
-                          " type:   {}\n"
-                          " remote_file_path: {}\n"
-                          " local_file_path:  {}"
+                          "\t\tdomain: {}\n"
+                          "\t\tip:     {}\n"
+                          "\t\ttype:   {}\n"
+                          "\t\tremote_file_path: {}\n"
+                          "\t\tlocal_file_path:  {}"
                           .format(self.name, self.ip, type,
                                   remote_file_path, local_file_path))
         try:
