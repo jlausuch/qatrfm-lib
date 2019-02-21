@@ -18,6 +18,7 @@ class MyTestCase(TrfmTestCase):
         vm1.transfer_file(remote_file_path='/etc/resolv.conf',
                           local_file_path='/root/test.resolv.conf',
                           type='get')
+        return self.EX_OK
 
 
 def main():

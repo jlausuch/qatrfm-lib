@@ -8,17 +8,15 @@ variable "network" {
 variable "image" {
 }
 
+variable "basename" {
+}
+
 provider "libvirt" {
      uri = "qemu:///system"
 }
 
-resource "random_id" "service" {
-    count = "${var.count}"
-    byte_length = 4
-}
-
 resource "libvirt_volume" "myvdisk" {
-  name = "qatrfm-vdisk-${element(random_id.service.*.hex, count.index)}.qcow2"
+  name = "qatrfm-vdisk-${var.basename}-${count.index}.qcow2"
   count = "${var.count}"
   pool = "default"
   source = "${var.image}"
@@ -26,7 +24,7 @@ resource "libvirt_volume" "myvdisk" {
 }
 
 resource "libvirt_network" "my_net" {
-   name = "qatrfm-net-${element(random_id.service.*.hex, count.index)}"
+   name = "qatrfm-net-${var.basename}"
    addresses = ["${var.network}"]
    dhcp {
 		enabled = false
@@ -34,7 +32,7 @@ resource "libvirt_network" "my_net" {
 }
 
 resource "libvirt_domain" "domain-sle" {
-  name = "qatrfm-vm-${element(random_id.service.*.hex, count.index)}"
+  name = "qatrfm-vm-${var.basename}-${count.index}"
   memory = "2048"
   vcpu = 2
   count = "${var.count}"

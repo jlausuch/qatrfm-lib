@@ -39,8 +39,8 @@ class TerraformEnv(object):
         self.num_domains = num_domains
         self.snapshots = snapshots
         letters = string.ascii_lowercase
-        self.workdir = (
-            self.BASEDIR + ''.join(random.choice(letters) for i in range(10)))
+        self.basename = ''.join(random.choice(letters) for i in range(10))
+        self.workdir = ("{}/{}".format(self.BASEDIR, self.basename))
         os.makedirs(self.workdir)
         self.logger.debug("Using working directory {}".format(self.workdir))
         shutil.copy(self.tf_file, self.workdir + '/env.tf')
@@ -111,10 +111,12 @@ class TerraformEnv(object):
 
         try:
             cmd = ("terraform apply -auto-approve "
+                   "-var \"basename={}\" "
                    "-var \"image={}\" "
                    "-var \"network={}\" "
                    "-var \"count={}\"".
-                   format(self.image, self.networks[0], self.num_domains))
+                   format(self.basename, self.image,
+                          self.networks[0], self.num_domains))
             [ret, output] = libutils.execute_bash_cmd(cmd, timeout=400)
         except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
             self.logger.error("\033[1;91m{}\033[0m".format(e))
@@ -167,10 +169,12 @@ class TerraformEnv(object):
                         shutil.rmtree(self.workdir)
                         sys.exit(-1)
             cmd = ("terraform destroy -auto-approve "
+                   "-var \"basename={}\" "
                    "-var \"image={}\" "
                    "-var \"network={}\" "
                    "-var \"count={}\"".
-                   format(self.image, self.networks[0], self.num_domains))
+                   format(self.basename, self.image,
+                          self.networks[0], self.num_domains))
             try:
                 [ret, output] = libutils.execute_bash_cmd(cmd)
             except (libutils.TrfmCommandFailed,
