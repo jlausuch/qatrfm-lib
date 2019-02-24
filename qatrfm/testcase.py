@@ -12,7 +12,7 @@ class TrfmTestCase(object):
     EX_RUN_ERROR = os.EX_SOFTWARE
     """execution failed in some step"""
 
-    def __init__(self, env, name, description):
+    def __init__(self, env, name, description=None):
         self.env = env
         self.name = name
         self.description = description

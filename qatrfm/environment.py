@@ -38,7 +38,7 @@ class TerraformEnv(object):
         self.snapshots = snapshots
         letters = string.ascii_lowercase
         self.basename = ''.join(random.choice(letters) for i in range(10))
-        self.workdir = ("{}/{}".format(self.BASEDIR, self.basename))
+        self.workdir = self.BASEDIR + self.basename
         os.makedirs(self.workdir)
         self.logger.debug("Using working directory {}".format(self.workdir))
         shutil.copy(self.tf_file, self.workdir + '/env.tf')
@@ -46,6 +46,8 @@ class TerraformEnv(object):
         self.domains = []
         self.networks = []
         self.networks.append(self.get_network())
+        self.logger.debug("Using network {} for the domains".
+                          format(self.networks[0]))
         # TODO: check how many networks the user needs and fill this array
         #       accordingly
 
