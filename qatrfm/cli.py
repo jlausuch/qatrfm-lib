@@ -25,17 +25,19 @@ from qatrfm.testcase import TrfmTestCase
               help='Use libvirt snapshots for the domains.')
 @click.option('--no-clean', 'no_clean', is_flag=True,
               help='Use libvirt snapshots for the domains.')
-@click.option('--tf-file', 'tf_file', default=None,
-              help='Use custom .tf file for Terraform instead of default.')
-def run(test, path, hdd, num_domains, cores, ram, snapshots,
-        no_clean, tf_file):
+def run(test, path, hdd, num_domains, cores, ram, snapshots, no_clean):
     logger = QaTrfmLogger.getQatrfmLogger(__name__)
+
+    basedir, filename = os.path.split(path)
+    tf_file = None
+    for file in os.listdir(basedir):
+        if file.endswith(".tf"):
+            tf_file = os.path.join(basedir, file)
     env = TerraformEnv(image=hdd,
                        tf_file=tf_file,
                        num_domains=num_domains,
                        snapshots=snapshots)
 
-    _, filename = os.path.split(path)
     spec = importlib.util.spec_from_file_location(filename, path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -44,7 +46,8 @@ def run(test, path, hdd, num_domains, cores, ram, snapshots,
     for member in inspect.getmembers(module):
         if member[0] == test:
             cls = member[1]
-
+    if (cls is None):
+        sys.exit("There is no Class named '{}' in {}".format(test, path))
     testcase = cls(env, test)
 
     logger.info("Test case information:\n"
