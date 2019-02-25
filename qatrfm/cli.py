@@ -82,7 +82,7 @@ def run(test, path, hdd, num_domains, cores, ram, snapshots, no_clean):
             else:
                 failed_tests.append(t.name)
                 logger.error("The test '{}' finished with error code={}".
-                             format(exit_code))
+                             format(t.name, exit_code))
 
     except Exception as e:
         logger.error("Something went wrong:\n{}".format(e))
