@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from qatrfm.testcase import TrfmTestCase
 from qatrfm.utils.logger import QaTrfmLogger

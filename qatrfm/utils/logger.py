@@ -1,4 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+#
+# Copyright © 2019 SUSE LLC
+#
+# Copying and distribution of this file, with or without modification,
+# are permitted in any medium without royalty provided the copyright
+# notice and this notice are preserved.  This file is offered as-is,
+# without any warranty.
+
+
+""" QaTrfm custom Logger Class
+
+It defines a specific format of the log messages.
+If LOG_COLORS=1 is exported, it will print the messages in different colors
+according to it's level.
+"""
 
 import logging
 import os
@@ -7,7 +22,7 @@ import os
 class QaTrfmLogger(logging.Logger):
 
     def __init__(self, logger_name, level="DEBUG"):
-
+        """Initialize QaTrfmLogger Class"""
         self.colors = False
         if ('LOG_COLORS' in os.environ):
             self.colors = True

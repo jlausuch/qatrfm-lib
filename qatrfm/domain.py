@@ -1,4 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+#
+# Copyright © 2019 SUSE LLC
+#
+# Copying and distribution of this file, with or without modification,
+# are permitted in any medium without royalty provided the copyright
+# notice and this notice are preserved.  This file is offered as-is,
+# without any warranty.
+
+
+""" Libvirt domain
+
+It represents a Virtual Machine (Domain) object along with a bunch of
+utilities to interact with it.
+
+"""
 
 import paramiko
 import time
@@ -13,13 +28,13 @@ class Domain(object):
     logger = QaTrfmLogger.getQatrfmLogger(__name__)
 
     def __init__(self, name, ip=None, user='root', pwd='nots3cr3t'):
+        """Initialize Domain object."""
         self.name = name
         self.ip = ip
         self.user = user
         self.pwd = pwd
-
-    def login(self):
-        self.logger.info("Login")
+        # TODO: don't hardcode user/pwd. Allow new input parameters from user.
+        # Future: inject ssh keys into VMs from host.
 
     def _print_log(self, cmd, retcode=None, output=None):
         self.logger.debug("Qemu agent command status:\n"
@@ -30,6 +45,19 @@ class Domain(object):
                           .format(self.name, cmd, retcode, output))
 
     def execute_cmd(self, cmd, timeout=300, exit_on_failure=True):
+        """
+        Initialize Domain object.
+
+        Executes a command through qemu-agent-command, which is a daemon
+        program running inside the domain. It uses 'guest-exec' to run a
+        command, querys the result 'guest-exec-status' until the command ends
+        and returns a exit code and potential stdout or stderr.
+        If the command doesn't finish before a certain 'timeout', the method
+        with raise an exception if 'exit_on_failure' is set to True.
+
+        For more info about qemu agent, refer to:
+            https://wiki.libvirt.org/page/Qemu_guest_agent
+        """
         self.logger.debug("execute_cmd '{}'".format(cmd))
         str = qau.generate_guest_exec_str(self.name, cmd)
         out_json = libutils.execute_bash_cmd(str)[1]
@@ -60,6 +88,10 @@ class Domain(object):
             raise libutils.TrfmCommandTimeout
 
     def wait_for_qemu_agent_ready(self, timeout=300):
+        """
+        Waits for qemu agent available in the domain by running a simple
+        command and check that it doesn't fail.
+        """
         i = 0
         while (i < int(timeout / 10)):
             try:
@@ -72,6 +104,12 @@ class Domain(object):
         raise libutils.TrfmDomainTimeout
 
     def wait_for_ip_ready(self, timeout=300):
+        """
+        Waits until domain's ip is pingable.
+
+        The user is responsible to use an image which allows ingress ICMP
+        traffic.
+        """
         i = 0
         while (i < int(timeout / 10)):
             try:
@@ -85,6 +123,12 @@ class Domain(object):
         raise libutils.TrfmDomainTimeout
 
     def wait_for_ssh_ready(self, timeout=300):
+        """
+        Waits for domain's TCP port 22 (SSH) is reachable.
+
+        The user is responsible to use an image which allows ingress traffic in
+        port 22 TCP. Any firewall rules must be disabled beforehand.
+        """
         i = 0
         while (i < int(timeout / 10)):
             try:
@@ -98,6 +142,13 @@ class Domain(object):
         self.logger.warning("SSH is not available on the domain.")
 
     def snapshot(self, action):
+        """
+        Create a snapshot of the domain
+
+        If desired, snapshots of a domain can be created when the environment
+        is freshly deployed. Thus, tests can reset the environment at any point
+        to revert the state of a domain as it was right after boot.
+        """
         if (action == 'create'):
             cmd = ("virsh snapshot-create-as {} --name {}-snapshot"
                    .format(self.name, self.name))
@@ -115,6 +166,13 @@ class Domain(object):
             raise libutils.TrfmSnapshotFailed(e)
 
     def transfer_file(self, remote_file_path, local_file_path, type='get'):
+        """
+        Transfer a file from/to the domain via SSH (SCP).
+
+        'type' attribute can be set to 'get' to transfer_file a file from the
+        domain to a local path or 'put' to do the opposite.
+
+        """
         if (self.ip is None):
             raise libutils.TrfmDomainNotReachable(
                 "The domain doesn't have an IP defined")

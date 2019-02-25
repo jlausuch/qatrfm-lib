@@ -1,4 +1,18 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+#
+# Copyright © 2019 SUSE LLC
+#
+# Copying and distribution of this file, with or without modification,
+# are permitted in any medium without royalty provided the copyright
+# notice and this notice are preserved.  This file is offered as-is,
+# without any warranty.
+
+""" CLI tool for QATRFM library.
+
+Allows calling this library in a simple way via CLI based on Click with only
+one command that creates the environment runs the tests.
+"""
+
 
 import click
 import importlib.util
@@ -45,6 +59,8 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
               help="Don't clean the environment when the tests finish. "
               "This is useful for debug and troubleshooting.")
 def cli(test, path, hdd, num_domains, cores, ram, snapshots, no_clean):
+    """ Create a terraform environment and run the test(s)"""
+
     logger = QaTrfmLogger.getQatrfmLogger(__name__)
     test_array = test.split(',')
 
@@ -115,7 +131,7 @@ def cli(test, path, hdd, num_domains, cores, ram, snapshots, no_clean):
         if (len(failed_tests) > 0):
             logger.error("The following tests failed: {}".
                          format(failed_tests))
-            sys.exit(TrfmTestCase.EX_RUN_ERROR)
+            sys.exit(TrfmTestCase.EX_FAILURE)
         else:
             logger.success("Overall status = GREEN")
             sys.exit(TrfmTestCase.EX_OK)

@@ -1,4 +1,20 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+#
+# Copyright © 2019 SUSE LLC
+#
+# Copying and distribution of this file, with or without modification,
+# are permitted in any medium without royalty provided the copyright
+# notice and this notice are preserved.  This file is offered as-is,
+# without any warranty.
+
+""" Terraform environment
+
+Defines how the Terraform deployment looks like and implements the
+appropriate calls to deploy and destroy the environment. All the possible
+parameters are passed to the corresponding .tf file which terraform will
+use to create the libvirt objects (networks, disks, domains)
+
+"""
 
 import json
 import random
@@ -18,15 +34,12 @@ class TerraformEnv(object):
     logger = QaTrfmLogger.getQatrfmLogger(__name__)
     BASEDIR = '/root/terraform/'
 
-    def __init__(self, image,
-                 tf_file=None,
-                 num_domains=1,
-                 cores=1,
-                 ram=1024,
-                 snapshots=False):
+    def __init__(self, image, tf_file=None, num_domains=1,
+                 cores=1, ram=1024, snapshots=False):
+        """Initialize Terraform Environment object."""
         self.image = image
         if (not os.path.isfile(self.image)):
-            self.logger.error("File {} not found.".format(self.image))
+            self.logger.error("Image file {} not found.".format(self.image))
             sys.exit(-1)
 
         if (tf_file is None):
@@ -60,6 +73,17 @@ class TerraformEnv(object):
 
     @staticmethod
     def get_network():
+        """
+        Find a non-used network in the system
+
+        To allow multiple environments co-exist, network ranges can't be
+        hardcoded. Otherwise, new libvirt virtual networks can't be created.
+        This method offers a network range which is not currently used in the
+        range 10.0.0.0/24.
+        The second octet is a random number between 1 and 254.
+        The third octet is iterated from 1 to 254 until there is a non-used
+        range in the sytem.
+        """
         [ret, output] = libutils.execute_bash_cmd('ip route')
         x = random.randint(1, 254)
         y = 1
@@ -74,7 +98,11 @@ class TerraformEnv(object):
 
     @staticmethod
     def get_domains():
-        """ Return an array of Domain objects """
+        """
+        Return an array of Domain objects
+
+        Query terraform to get the names of the domains to create the objects.
+        """
         domains = []
         cmd = "terraform output -json domain_names"
         [ret, output] = libutils.execute_bash_cmd(cmd)
@@ -102,7 +130,7 @@ class TerraformEnv(object):
 
         It creates the Terraform environment from the given .tf file
 
-        If snapshots == True, after the domains are up, it will create a
+        If snapshots is set to True, after the domains are up, it will create a
         snapshot for each domain in case they are needed to be reverted
         at a certain point of the test flow.
         """
@@ -166,20 +194,21 @@ class TerraformEnv(object):
             try:
                 domain.snapshot(action='revert')
                 time.sleep(5)
-            except libutils.TrfmSnapshotFailed:
+            except libutils.TrfmSnapshotFailed as e:
                 shutil.rmtree(self.workdir)
-                sys.exit(-1)
+                raise(e)
 
     def clean(self, remove_terraform_env=True):
+        """ Destroys the Terraform environment """
         self.logger.info("Removing Terraform Environment...")
         if (remove_terraform_env):
             if (self.snapshots):
                 for domain in self.domains:
                     try:
                         domain.snapshot(action='delete')
-                    except libutils.TrfmSnapshotFailed:
+                    except libutils.TrfmSnapshotFailed as e:
                         shutil.rmtree(self.workdir)
-                        sys.exit(-1)
+                        raise(e)
             cmd = ("terraform destroy -auto-approve "
                    "-var \"basename={}\" "
                    "-var \"image={}\" "
@@ -197,7 +226,7 @@ class TerraformEnv(object):
                     libutils.TrfmCommandTimeout) as e:
                 self.logger.error(e)
                 shutil.rmtree(self.workdir)
-                sys.exit(-1)
+                raise(e)
 
         shutil.rmtree(self.workdir)
         self.logger.success("Environment clean")

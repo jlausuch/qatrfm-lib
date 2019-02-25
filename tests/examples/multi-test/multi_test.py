@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from qatrfm.testcase import TrfmTestCase
 
@@ -20,7 +20,7 @@ class TestCase1(TrfmTestCase):
         if (retcode == 0):
             return self.EX_OK
         else:
-            return self.EX_RUN_ERROR
+            return self.EX_FAILURE
 
 
 class TestCase2(TrfmTestCase):
@@ -35,4 +35,4 @@ class TestCase2(TrfmTestCase):
         if (retcode == 0):
             return self.EX_OK
         else:
-            return self.EX_RUN_ERROR
+            return self.EX_FAILURE
