@@ -11,22 +11,40 @@ from qatrfm.environment import TerraformEnv
 from qatrfm.testcase import TrfmTestCase
 
 
-@click.command()
+def print_version(ctx, param, value):
+    if not value or ctx.resilient_parsing:
+        return
+    click.echo('Version: 0.1\n'
+               'Author:  Jose Lausuch <jalausuch@suse.com>')
+    ctx.exit()
+
+
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+
+
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.option('--version', '-v', is_flag=True, callback=print_version,
+              expose_value=False, is_eager=True)
 @click.option('--test', '-t', required=True,
               help='Testcase(s) name(s). Single name or a list separated by '
               'comas of the Class(es) in path to be executed.')
 @click.option('--path', '-p', required=True,
               help='Path of the test file.')
-@click.option('--hdd', '-h', required=True, help='Path to HDD image.')
+@click.option('--hdd', '-d', required=True, help='Path to HDD image.')
 @click.option('--num_domains', '-n', default=1,
-              help='Number of domains to be created.')
-@click.option('--cores', '-c', default=2, help='Num cores of the domains.')
-@click.option('--ram', '-r', default=1024, help='Ram of the domains in MB.')
+              help='Number of domains to be created. Default=1')
+@click.option('--cores', '-c', default=1, help='Num cores of the domains. '
+              'Default=1')
+@click.option('--ram', '-r', default=1024, help='Ram of the domains in MB. '
+              'Default=1024')
 @click.option('--snapshots', '-s', is_flag=True,
-              help='Use libvirt snapshots for the domains.')
+              help='Create snapshots of the domains at the beginning. '
+              'This is useful to allow the test revert the domains to their '
+              'initial state if needed.')
 @click.option('--no-clean', 'no_clean', is_flag=True,
-              help='Use libvirt snapshots for the domains.')
-def run(test, path, hdd, num_domains, cores, ram, snapshots, no_clean):
+              help="Don't clean the environment when the tests finish. "
+              "This is useful for debug and troubleshooting.")
+def cli(test, path, hdd, num_domains, cores, ram, snapshots, no_clean):
     logger = QaTrfmLogger.getQatrfmLogger(__name__)
     test_array = test.split(',')
 
@@ -101,7 +119,3 @@ def run(test, path, hdd, num_domains, cores, ram, snapshots, no_clean):
         else:
             logger.success("Overall status = GREEN")
             sys.exit(TrfmTestCase.EX_OK)
-
-
-if __name__ == '__main__':
-    run()
