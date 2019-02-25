@@ -11,6 +11,14 @@ variable "image" {
 variable "basename" {
 }
 
+variable "ram" {
+    default = "1024"
+}
+
+variable "cores" {
+    default = "1"
+}
+
 provider "libvirt" {
      uri = "qemu:///system"
 }
@@ -27,14 +35,14 @@ resource "libvirt_network" "my_net" {
    name = "qatrfm-net-${var.basename}"
    addresses = ["${var.network}"]
    dhcp {
-		enabled = true
-	}
+        enabled = true
+    }
 }
 
 resource "libvirt_domain" "domain-sle" {
   name = "qatrfm-vm-${var.basename}-${count.index}"
-  memory = "2048"
-  vcpu = 2
+  memory = "${var.ram}"
+  vcpu = "${var.cores}"
   count = "${var.count}"
 
   network_interface {

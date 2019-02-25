@@ -18,7 +18,12 @@ class TerraformEnv(object):
     logger = QaTrfmLogger.getQatrfmLogger(__name__)
     BASEDIR = '/root/terraform/'
 
-    def __init__(self, image, tf_file=None, num_domains=1, snapshots=False):
+    def __init__(self, image,
+                 tf_file=None,
+                 num_domains=1,
+                 cores=1,
+                 ram=1024,
+                 snapshots=False):
         self.image = image
         if (not os.path.isfile(self.image)):
             self.logger.error("File {} not found.".format(self.image))
@@ -35,6 +40,8 @@ class TerraformEnv(object):
             sys.exit(-1)
         self.logger.debug("Terraform TF file: {}".format(self.tf_file))
         self.num_domains = num_domains
+        self.cores = cores
+        self.ram = ram
         self.snapshots = snapshots
         letters = string.ascii_lowercase
         self.basename = ''.join(random.choice(letters) for i in range(10))
@@ -117,9 +124,11 @@ class TerraformEnv(object):
                    "-var \"basename={}\" "
                    "-var \"image={}\" "
                    "-var \"network={}\" "
+                   "-var \"cores={}\" "
+                   "-var \"ram={}\" "
                    "-var \"count={}\"".
-                   format(self.basename, self.image,
-                          self.networks[0], self.num_domains))
+                   format(self.basename, self.image, self.networks[0],
+                          self.cores, self.ram, self.num_domains))
             if ('LOG_COLORS' not in os.environ):
                 cmd = ("{} -no-color".format(cmd))
             [ret, output] = libutils.execute_bash_cmd(cmd, timeout=400)
@@ -175,9 +184,11 @@ class TerraformEnv(object):
                    "-var \"basename={}\" "
                    "-var \"image={}\" "
                    "-var \"network={}\" "
+                   "-var \"cores={}\" "
+                   "-var \"ram={}\" "
                    "-var \"count={}\"".
-                   format(self.basename, self.image,
-                          self.networks[0], self.num_domains))
+                   format(self.basename, self.image, self.networks[0],
+                          self.cores, self.ram, self.num_domains))
             if ('LOG_COLORS' not in os.environ):
                 cmd = ("{} -no-color".format(cmd))
             try:
