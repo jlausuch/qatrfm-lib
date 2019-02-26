@@ -4,15 +4,15 @@ This is library to execute tests on virtual machines managed by Terraform + Libv
 
 ## Table of Content
 - [Introduction and Goals](#intro)
-- [QuickStart](#quickstart)
--- [Installation](#installation)
--- [Usage](#usage)
-- [Writing a test case](#writing-a-test-case)
+- [Quickstart](#quickstart)
+    - [Installation](#installation)
+    - [Usage](#usage)
+- [Writting a test case](#writting-a-test-case)
 - [Developer guide](#developer-guide)
--- [Multi test](#multi-test)
--- [Reset environment](#reset-environment)
--- [Troubleshooting a test](#troubleshooting-a-test)
--- [Custom .tf files](#custom-tf-files)
+    - [Multi test](#multi-test)
+    - [Reset environment](#reset-environment)
+    - [Troubleshooting a test](#troubleshooting-a-test)
+    - [Custom .tf files](#custom-tf-files)
 - [Authors](#authors)
 
 
