@@ -3,11 +3,11 @@
 This is library to execute tests on virtual machines managed by Terraform + Libvirt provider.
 
 ## Table of Content
-- [Introduction and Goals](#intro)
+- [Introduction and Goals](#introduction-and-goals)
 - [Quickstart](#quickstart)
     - [Installation](#installation)
     - [Usage](#usage)
-- [Writting a test case](#writting-a-test-case)
+- [Writing a test case](#writing-a-test-case)
 - [Developer guide](#developer-guide)
     - [Multi test](#multi-test)
     - [Reset environment](#reset-environment)
