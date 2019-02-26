@@ -1,13 +1,33 @@
 # QA Terraform Library
 
-The aim of this project is to provide a standalone library to execute tests on a virtual environment managed by Terraform + Libvirt provider.
+This is library to execute tests on virtual machines managed by Terraform + Libvirt provider.
+
+## Table of Content
+- [Introduction and Goals](#intro)
+- [QuickStart](#quickstart)
+-- [Installation](#installation)
+-- [Usage](#usage)
+- [Writing a test case](#writing-a-test-case)
+- [Developer guide](#developer-guide)
+-- [Multi test](#multi-test)
+-- [Reset environment](#reset-environment)
+-- [Troubleshooting a test](#troubleshooting-a-test)
+-- [Custom .tf files](#custom-tf-files)
+- [Authors](#authors)
+
+
+# Introduction and Goals
 
 Terraform is a tool to easy manage different service providers (IaaS, PaaS, SaaS) in a common way. The only thing Terraform needs is a configuration file which defines the infrastructure to be deployed, with different resource types and options for each provider but written in a similar way.
 
 For more information, refer to the [Terraform website][trfm1]
 
-There is a [long list][trfm2] of supported providers and this library focuses on the [Libvirt provider][trfm3].
+There is a list of [supported providers][trfm2] but this library focuses on the [Libvirt provider][trfm3].
+Terraform talks to libvirtd to create the needed resources (network, disk, domains) in a very simple way.
 
+This library allows interacting easily with Domains (Virtual Machines) created by Terraform + Libvirt. It provides a simple method to get domain objects and perform some actions on them (i.e. run commands, transfer files via scp, ...).
+
+# QuickStart
 ### Installation
 The library can be installed as a python package:
 
@@ -20,7 +40,7 @@ It also installs a command in /usr/bin/qatrfm
     qatrfm --version
 
 which performs the following actions:
-1) Create and deploys a Terraform environment given some input parameters (number of domains, cores, ram, etc)
+1) Create and deploys a Terraform environment given some input parameters (number of domains, cores, ram, etc.)
 2) Run the test(s) case(s) using the domains in the environment
 3) Clean the Terraform environment
 
@@ -53,17 +73,23 @@ The command provides comprehensive help of all the needed parameters.
 
 Some of these parameters are required and some others can be left out if the default values are ok for the user.
 
+If the environment variable LOG_COLORS=1 is set in the system, the command will output logging information using color codes for each message type. This is useful for manual usage of it. Colors are disabled by default.
 
-### Writting a test case
+***IMPORTANT***:
+It is recommended to use this tool as root user, since it requires special privileges to create the resources on the system.
 
-There is a test directory with some examples. The idea is to create a directory within `tests/` and a python file within.
+### Writing a test case
+
+Although there is a test directory with some examples, let's explain how to write a test case from scratch.
+
+Create a directory within `tests/` and a file with .py extension within.
 For instance
 
     mkdir ./tests/mytest
     touch ./tests/mytest/my_first_test.py
 
 In this python file, a Class inherited from `TrfmTestCase` shall be created for each test case.
-This example shows a simple test case running a command on a virtual machine (domain).
+This example shows a simple test case which executes a dummy command on a domain.
 
     #!/usr/bin/env python3
     from qatrfm.testcase import TrfmTestCase
@@ -76,7 +102,7 @@ This example shows a simple test case running a command on a virtual machine (do
 
 The method `run()` shall be overriden from the parent class `TrfmTestCase` and place all the test logic flow there.
 
-The Domain objects are stored in the variable `self.env.domains` as an array of size depending on how many domains are created.
+The Domain objects are stored in the variable `self.env.domains` as an array of size depending on how many domains are created (1 by default).
 
 It is possible to override the `__init__` method to provide a description of the test case.
 
@@ -88,18 +114,18 @@ It is possible to override the `__init__` method to provide a description of the
 
 To run this test case, you can do the following call:
 
-    $ qatrfm -t MyFirstTest \  # name of the Class
+    $ qatrfm -t MyFirstTest \
              -p /path/to/qatrfm-lib/tests/mytest/my_first_test.py \
              -d /var/lib/libvirt/images/my_image.qcow2 \
 
 Here, `-t MyFirstTest` is the name of the Class which is implemented in the python module defined by `-p /path/to/qatrfm-lib/tests/mytest/my_first_test.py`. This is important so that the program can load dynamically the python module and execute the run() method in that class.
 
-The paramter `--hdd` or `-d` is the path to the source image that libvirt will use to create additional disks for the domains. This won't be touched or modified.
+The parameter `--hdd` or `-d` is the path to the source image that libvirt will use to create additional disks for the domains. This file won't be modified.
 
 ***IMPORTANT***:
 The image provided must be *auto-bootable*. This means for instance that `GRUB_TIMEOUT` shall be different than `-1` for Linux systems. Otherwise the program will timeout waiting for the domains to be up.
 
-**NOTE**: By default, terraform will create 1 domain (Virtual Machine) unless specified by parameter `-n` in the `qatrfm` command.
+**NOTE**: By default, terraform will create 1 domain (Virtual Machine) unless specified by parameter `-n/--num_domains` in the `qatrfm` command.
 
 
 
@@ -126,10 +152,10 @@ The previous example would become something like this:
             [retcode, output] = vm.execute_cmd('date')
             return retcode
 
-To run both tests in the same environment, both classes names shall be passed to the `qatrfm` command.
+To run both tests in the same environment, both classes names shall be passed to the `qatrfm` command separated by commas.
 Example:
 
-    $ qatrfm -t MyTest1,MyTest2 \  # name of the Class
+    $ qatrfm -t MyTest1,MyTest2 \
              -p /path/to/qatrfm-lib/tests/mytest/my_first_test.py \
              -d /var/lib/libvirt/images/my_image.qcow2 \
 
@@ -138,7 +164,7 @@ This will run `MyTest1` and `MyTest2` consecutively.
 ### Reset environment
 For multi-test approaches, it is important to mention that sometimes it is useful to reset the environment after each test execution, so we have a freshly installed OS before executing the test flow.
 
-By calling `qatrfm` with the flag `--snapshots`, the library will create a libvirt snapshot of each domain right after deployment. During the test flow, it is possbile to call this method to revert the domains to their original state:
+By calling `qatrfm` with the flag `--snapshots`, the library will create a libvirt snapshot of each domain right after deployment. During the test flow, it is possible to call this method to revert the domains to their original state:
 
     self.env.reset()
 
@@ -174,7 +200,7 @@ The user is responsible to clean the environment manually when finished. This ca
 ### Custom .tf files ###
 
 By default, the library provides a base .tf file with some flexibility when it comes to creating the domains.
-It is possible to define the number of domains, the source image, the number of Cores and RAM but sometimes the test needs a different configuration (e.g. 2 NICs in the domains, 2 libvirt Networks, etc). Therefore, it is possible to place a custom .tf file in the same directory as the python module for the test. The library will check that there is a .tf file and will load it instead of the default one.
+It is possible to define the number of domains, the source image, the number of Cores and RAM but sometimes the test needs a different configuration (e.g. 2 NICs in the domains, 2 libvirt Networks, etc.). Therefore, it is possible to place a custom .tf file in the same directory as the python module for the test. The library will check that there is a .tf file and will load it instead of the default one.
 
 The custom .tf file must be similar to the one located in `qatrfm/config/simple_1net.tf` when it comes to input and output variables. However, it is possible to hardcode some of them such as Cores, RAM, etc. but it is recommended to leave intact some of them such as `image`, `basename` and `network`.
 
@@ -190,7 +216,7 @@ and optionally and recommendable (depending on the test needs and configuration)
     }
 
 
-##### Authors #####
+### Authors
 Jose Lausuch <jalausuch@suse.com>,  *QA Engineer at SUSE*
 
 
