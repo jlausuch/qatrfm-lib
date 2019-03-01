@@ -35,18 +35,20 @@ class Domain(object):
         self.pwd = pwd
         # TODO: don't hardcode user/pwd. Allow new input parameters from user.
         # Future: inject ssh keys into VMs from host.
+        self.ssh = paramiko.SSHClient()
+        self.ssh.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
 
-    def _print_log(self, cmd, retcode=None, output=None):
-        self.logger.debug("Qemu agent command status:\n"
+    def _print_log(self, cmd, retcode=None, output=None, type='Qemu agent'):
+        self.logger.debug("{} command status:\n"
                           "\t\tDOMAIN  : {}\n"
                           "\t\tCMD     : {}\n"
                           "\t\tRETCODE : {}\n"
                           "\t\tOUTPUT  :\n{}\n"
-                          .format(self.name, cmd, retcode, output))
+                          .format(type, self.name, cmd, retcode, output))
 
     def execute_cmd(self, cmd, timeout=300, exit_on_failure=True):
         """
-        Initialize Domain object.
+        Execute a command.
 
         Executes a command through qemu-agent-command, which is a daemon
         program running inside the domain. It uses 'guest-exec' to run a
@@ -86,6 +88,47 @@ class Domain(object):
                           format(cmd, self.name))
         if (exit_on_failure):
             raise libutils.TrfmCommandTimeout
+
+    def execute_ssh_cmd(self, cmd, timeout=300, exit_on_failure=True):
+        """
+        Execute SSH command.
+
+        Executes a command through SSH using paramiko library.
+        IP must be not None and reachable.
+        If the command doesn't finish before a certain 'timeout', the method
+        with raise an exception if 'exit_on_failure' is set to True.
+
+        """
+        self.logger.debug("execute ssh cmd '{}'".format(cmd))
+        try:
+            ssh.connect(hostname=self.ip,
+                        username=self.user,
+                        password=self.pwd)
+            (_, stdout, stderr) = self.ssh.exec_command(cmd, timeout=timeout)
+            retcode = stdout.channel.recv_exit_status()
+            self.ssh.close()
+            if (retcode != 0):
+                self._print_log(cmd, retcode, stderr, type='SSH')
+                if (exit_on_failure):
+                    raise libutils.TrfmCommandFailed
+                return [retcode, stderr]
+            else:
+                self._print_log(cmd, retcode, stdout, type='SSH')
+            return [retcode, stdout]
+        except paramiko.ssh_exception.NoValidConnectionsError as e:
+            self.ssh.close()
+            self.logger.error("Can't reach IP {} on port 22.\n{}".
+                              format(self.ip, e))
+            raise(e)
+        except paramiko.ssh_exception.AuthenticationException as e:
+            self.ssh.close()
+            self.logger.error("Wrong user/password for the Domain {}.".
+                              format(self.name))
+            raise(e)
+        except paramiko.ssh_exception.SSHException as e:
+            self.ssh.close()
+            self.logger.error("The domain failed to execute the command.")
+            raise(e)
 
     def wait_for_qemu_agent_ready(self, timeout=300):
         """
@@ -185,26 +228,24 @@ class Domain(object):
                           .format(self.name, self.ip, type,
                                   remote_file_path, local_file_path))
         try:
-            ssh = paramiko.SSHClient()
-            ssh.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-            ssh.connect(hostname=self.ip,
+            self.ssh.connect(hostname=self.ip,
                         username=self.user,
                         password=self.pwd)
-            sftp_client = ssh.open_sftp()
+            sftp_client = self.ssh.open_sftp()
             if (type == 'get'):
                 sftp_client.get(remote_file_path, local_file_path)
             elif (type == 'put'):
                 sftp_client.put(local_file_path, remote_file_path)
             sftp_client.close()
-            ssh.close()
+            self.ssh.close()
             self.logger.debug("File Transfer succedded.")
         except paramiko.ssh_exception.NoValidConnectionsError as e:
-            ssh.close()
+            self.ssh.close()
             self.logger.error("Can't reach IP {} on port 22.\n{}".
                               format(self.ip, e))
             raise(e)
         except paramiko.ssh_exception.AuthenticationException as e:
-            ssh.close()
+            self.ssh.close()
             self.logger.error("Wrong user/password for the Domain {}.".
                               format(self.name))
             raise(e)
