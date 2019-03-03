@@ -101,20 +101,35 @@ class Domain(object):
         """
         self.logger.debug("execute ssh cmd '{}'".format(cmd))
         try:
-            ssh.connect(hostname=self.ip,
-                        username=self.user,
-                        password=self.pwd)
-            (_, stdout, stderr) = self.ssh.exec_command(cmd, timeout=timeout)
+            self.ssh.connect(hostname=self.ip,
+                             username=self.user,
+                             password=self.pwd)
+            (_, stdout, stderr) = self.ssh.exec_command(cmd)
+            i = 0
+            while not stdout.channel.eof_received:
+                print(i)
+                time.sleep(1)
+                if i > timeout:
+                    self.ssh.close()
+                    self.logger.error("The command {} timed out after "
+                                      "{} seconds.".format(cmd, timeout))
+                    if (exit_on_failure):
+                        raise libutils.TrfmCommandTimeout
+                    return [-1, stdout.read().decode("utf-8")]
+                i += 1
+
             retcode = stdout.channel.recv_exit_status()
             self.ssh.close()
             if (retcode != 0):
-                self._print_log(cmd, retcode, stderr, type='SSH')
+                error = stderr.read().decode("utf-8")
+                self._print_log(cmd, retcode, error, type='SSH')
                 if (exit_on_failure):
-                    raise libutils.TrfmCommandFailed
-                return [retcode, stderr]
+                    raise libutils.TrfmCommandFailed(error)
+                return [retcode, error]
             else:
-                self._print_log(cmd, retcode, stdout, type='SSH')
-            return [retcode, stdout]
+                output = stdout.read().decode("utf-8")
+                self._print_log(cmd, retcode, output, type='SSH')
+            return [retcode, output]
         except paramiko.ssh_exception.NoValidConnectionsError as e:
             self.ssh.close()
             self.logger.error("Can't reach IP {} on port 22.\n{}".
@@ -229,8 +244,8 @@ class Domain(object):
                                   remote_file_path, local_file_path))
         try:
             self.ssh.connect(hostname=self.ip,
-                        username=self.user,
-                        password=self.pwd)
+                             username=self.user,
+                             password=self.pwd)
             sftp_client = self.ssh.open_sftp()
             if (type == 'get'):
                 sftp_client.get(remote_file_path, local_file_path)
