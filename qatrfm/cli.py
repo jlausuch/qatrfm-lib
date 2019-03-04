@@ -44,7 +44,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
               'comas of the Class(es) in path to be executed.')
 @click.option('--path', '-p', required=True,
               help='Path of the test file.')
-@click.option('--hdd', '-d', required=True, help='Path to HDD image.')
+@click.option('--image', '-i', required=True, help='Path to source image.')
 @click.option('--num_domains', '-n', default=1,
               help='Number of domains to be created. Default=1')
 @click.option('--cores', '-c', default=1, help='Num cores of the domains. '
@@ -58,7 +58,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option('--no-clean', 'no_clean', is_flag=True,
               help="Don't clean the environment when the tests finish. "
               "This is useful for debug and troubleshooting.")
-def cli(test, path, hdd, num_domains, cores, ram, snapshots, no_clean):
+def cli(test, path, image, num_domains, cores, ram, snapshots, no_clean):
     """ Create a terraform environment and run the test(s)"""
 
     logger = QaTrfmLogger.getQatrfmLogger(__name__)
@@ -69,7 +69,7 @@ def cli(test, path, hdd, num_domains, cores, ram, snapshots, no_clean):
     for file in os.listdir(basedir):
         if file.endswith(".tf"):
             tf_file = os.path.join(basedir, file)
-    env = TerraformEnv(image=hdd,
+    env = TerraformEnv(image=image,
                        tf_file=tf_file,
                        num_domains=num_domains,
                        snapshots=snapshots)
@@ -100,7 +100,7 @@ def cli(test, path, hdd, num_domains, cores, ram, snapshots, no_clean):
                 "\t\t  RAM    : {}\n"
                 "\t\t  Network: {}\n"
                 .format(test, env.workdir, not no_clean, snapshots,
-                        num_domains, hdd, cores, ram, env.networks[0]))
+                        num_domains, image, cores, ram, env.networks[0]))
 
     failed_tests = []
 
