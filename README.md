@@ -59,7 +59,7 @@ The command provides comprehensive help of all the needed parameters.
                                  separated by comas of the Class(es) in path to be
                                  executed.  [required]
       -p, --path TEXT            Path of the test file.  [required]
-      -d, --hdd TEXT             Path to HDD image.  [required]
+      -i, --image TEXT           Path to the source image.  [required]
       -n, --num_domains INTEGER  Number of domains to be created. Default=1
       -c, --cores INTEGER        Num cores of the domains. Default=1
       -r, --ram INTEGER          Ram of the domains in MB. Default=1024
