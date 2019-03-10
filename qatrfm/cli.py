@@ -20,8 +20,9 @@ import inspect
 import os
 import sys
 
-from qatrfm.utils.logger import QaTrfmLogger
 from qatrfm.environment import TerraformEnv
+from qatrfm.utils import libutils
+from qatrfm.utils.logger import QaTrfmLogger
 from qatrfm.testcase import TrfmTestCase
 
 
@@ -33,7 +34,27 @@ def print_version(ctx, param, value):
     ctx.exit()
 
 
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+def check_image(vars):
+    for var in vars:
+        v = var.split("=")
+        if (v[0] == 'image'):
+            if (not os.path.isfile(v[1])):
+                raise FileNotFoundError("No such image file {}".format(v[1]))
+            return True
+    raise libutils.TrfmMissingVariable(
+        "TF Parameter 'image' must be provided: "
+        "qatrfm ....  --tfvar image=<image_path>")
+
+
+def find_tf_file(basedir):
+    for file in os.listdir(basedir):
+        if file.endswith(".tf"):
+            return os.path.join(basedir, file)
+    return None
+
+
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'],
+                        max_content_width=200)
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
@@ -44,35 +65,35 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
               'comas of the Class(es) in path to be executed.')
 @click.option('--path', '-p', required=True,
               help='Path of the test file.')
-@click.option('--image', '-i', required=True, help='Path to source image.')
-@click.option('--num_domains', '-n', default=1,
-              help='Number of domains to be created. Default=1')
-@click.option('--cores', '-c', default=1, help='Num cores of the domains. '
-              'Default=1')
-@click.option('--ram', '-r', default=1024, help='Ram of the domains in MB. '
-              'Default=1024')
-@click.option('--snapshots', '-s', is_flag=True,
+@click.option('--tfvar', type=str, multiple=True, help='Variable to '
+              'insert to the .tf file. It can be used multiple times '
+              'for each single variable. At least tfvar "image" should be '
+              'provided for the default .tf file.')
+@click.option('--snapshots', is_flag=True,
               help='Create snapshots of the domains at the beginning. '
               'This is useful to allow the test revert the domains to their '
               'initial state if needed.')
 @click.option('--no-clean', 'no_clean', is_flag=True,
               help="Don't clean the environment when the tests finish. "
               "This is useful for debug and troubleshooting.")
-def cli(test, path, image, num_domains, cores, ram, snapshots, no_clean):
+def cli(test, path, tfvar, snapshots, no_clean):
     """ Create a terraform environment and run the test(s)"""
 
     logger = QaTrfmLogger.getQatrfmLogger(__name__)
     test_array = test.split(',')
 
     basedir, filename = os.path.split(path)
-    tf_file = None
-    for file in os.listdir(basedir):
-        if file.endswith(".tf"):
-            tf_file = os.path.join(basedir, file)
-    env = TerraformEnv(image=image,
-                       tf_file=tf_file,
-                       num_domains=num_domains,
-                       snapshots=snapshots)
+
+    tf_file = find_tf_file(basedir)
+
+    if (tf_file is None):
+        path_tf = os.path.dirname(os.path.realpath(__file__))
+        tf_file = ("{}/config/default.tf".format(path_tf))
+        check_image(tfvar)
+    if (not os.path.isfile(tf_file)):
+        raise FileNotFoundError("No such file {}".format(tf_file))
+
+    env = TerraformEnv(tf_vars=tfvar, tf_file=tf_file, snapshots=snapshots)
 
     spec = importlib.util.spec_from_file_location(filename, path)
     module = importlib.util.module_from_spec(spec)
@@ -87,20 +108,20 @@ def cli(test, path, image, num_domains, cores, ram, snapshots, no_clean):
             sys.exit("There is no Class named '{}' in {}".format(t, path))
         testcases.append(cls(env, t))
 
-    logger.info("Test case information:\n"
-                "\t\tTest case(s): {}\n"
-                "\t\tEnvironment:\n"
-                "\t\t  Working dir.: {}\n"
-                "\t\t  Clean       : {}\n"
-                "\t\t  Snapshots   : {}\n"
-                "\t\tDomains:\n"
-                "\t\t  Count  : {}\n"
-                "\t\t  Image  : {}\n"
-                "\t\t  Cores  : {}\n"
-                "\t\t  RAM    : {}\n"
-                "\t\t  Network: 10.{}.0.0/24\n"
-                .format(test, env.workdir, not no_clean, snapshots,
-                        num_domains, image, cores, ram, env.net_octet))
+    msg = ("Test case information:\n"
+           "\t\tTest case(s) : {}\n"
+           "\t\tTests path   : {}\n"
+           "\t\tWorking dir. : {}\n"
+           "\t\tNetwork      : 10.{}.0.0/24\n"
+           "\t\tClean        : {}\n"
+           "\t\tSnapshots    : {}\n"
+           "\t\tTF variables :\n"
+           .format(test, path, env.workdir, env.net_octet,
+                   not no_clean, snapshots))
+    for var in tfvar:
+        msg += "\t\t    {}\n".format(var)
+
+    logger.info(msg)
 
     failed_tests = []
 

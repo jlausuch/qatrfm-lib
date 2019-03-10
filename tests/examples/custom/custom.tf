@@ -1,10 +1,15 @@
+# mandatory variables calculated by the tool
 variable "net_octet" {
 }
 
-variable "image" {
+variable "basename" {
 }
 
-variable "basename" {
+# mandatory custom variables given to the CLI using --tfvar
+variable "image1" {
+}
+
+variable "image2" {
 }
 
 provider "libvirt" {
@@ -13,11 +18,12 @@ provider "libvirt" {
 
 resource "libvirt_volume" "myvdisk" {
   name = "qatrfm-vdisk-${var.basename}-${count.index}.qcow2"
-  count = 2
   pool = "default"
-  source = "${var.image}"
+  count = 2
+  source = "${count.index == 0 ? var.image1 : var.image2}"
   format = "qcow2"
 }
+
 
 resource "libvirt_network" "my_net1" {
    name = "qatrfm-net-${var.basename}-1"
@@ -45,13 +51,11 @@ resource "libvirt_domain" "domain-sle" {
 
   network_interface {
     network_id = "${libvirt_network.my_net1.id}"
-    #network_name = "qatrfm-net-${var.basename}-1"
     wait_for_lease = true
   }
 
   network_interface {
     network_id = "${libvirt_network.my_net2.id}"
-    #network_name = "qatrfm-net-${var.basename}-2"
     wait_for_lease = true
   }
 
