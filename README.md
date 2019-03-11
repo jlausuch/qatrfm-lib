@@ -202,7 +202,7 @@ The user is responsible to clean the environment manually when finished. This ca
 By default, the library provides a base .tf file with some flexibility when it comes to creating the domains.
 It is possible to define the number of domains, the source image, the number of Cores and RAM but sometimes the test needs a different configuration (e.g. 2 NICs in the domains, 2 libvirt Networks, etc.). Therefore, it is possible to place a custom .tf file in the same directory as the python module for the test. The library will check that there is a .tf file and will load it instead of the default one.
 
-The custom .tf file must be similar to the one located in `qatrfm/config/simple_1net.tf` when it comes to input and output variables. However, it is possible to hardcode some of them such as Cores, RAM, etc. but it is recommended to leave intact some of them such as `image`, `basename` and `network`.
+The custom .tf file must be similar to the one located in `qatrfm/config/default.tf` when it comes to input and output variables. However, it is possible to hardcode some of them such as Cores, RAM, etc. but it is recommended to leave intact some of them such as `image`, `basename` and `network`.
 
 Also, the output data that defines the domain names is mandatory in this file and must be present:
 

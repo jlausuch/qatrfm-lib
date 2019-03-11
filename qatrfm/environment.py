@@ -44,7 +44,7 @@ class TerraformEnv(object):
 
         if (tf_file is None):
             path = os.path.dirname(os.path.realpath(__file__))
-            self.tf_file = ("{}/config/simple_1net.tf".format(path))
+            self.tf_file = ("{}/config/default.tf".format(path))
         else:
             self.tf_file = tf_file
 
@@ -64,37 +64,31 @@ class TerraformEnv(object):
         shutil.copy(self.tf_file, self.workdir + '/env.tf')
         os.chdir(self.workdir)
         self.domains = []
-        self.networks = []
-        self.networks.append(self.get_network())
-        self.logger.debug("Using network {} for the domains".
-                          format(self.networks[0]))
-        # TODO: check how many networks the user needs and fill this array
-        #       accordingly
+        self.net_octet = self.get_network_octet()
+        self.logger.debug("Using network 10.{}.0.0/24".format(self.net_octet))
 
     @staticmethod
-    def get_network():
+    def get_network_octet():
         """
         Find a non-used network in the system
 
         To allow multiple environments co-exist, network ranges can't be
         hardcoded. Otherwise, new libvirt virtual networks can't be created.
-        This method offers a network range which is not currently used in the
-        range 10.0.0.0/24.
-        The second octet is a random number between 1 and 254.
-        The third octet is iterated from 1 to 254 until there is a non-used
-        range in the sytem.
+        The default environment will create a network with range 10.X.0.0/24,
+        where X will be calculated dynamically according to the existing
+        networks on the system, starting from X=0, this offers 255 possible
+        isolated environments running at the same time.
         """
-        [ret, output] = libutils.execute_bash_cmd('ip route')
-        x = random.randint(1, 254)
-        y = 1
-        while y < 255:
-            if "10.{}.{}.0".format(x, y) in output:
-                y += 1
+        [ret, output] = libutils.execute_bash_cmd('ip a')
+        x = 0
+        while x < 255:
+            if "10.{}.0.".format(x) in output:
+                x += 1
             else:
                 break
-        if y == 255:
+        if x == 255:
             raise Exception("Cannot find available network range")
-        return "10.{}.{}.0/24".format(x, y)
+        return x
 
     @staticmethod
     def get_domains():
@@ -151,11 +145,11 @@ class TerraformEnv(object):
             cmd = ("terraform apply -auto-approve "
                    "-var \"basename={}\" "
                    "-var \"image={}\" "
-                   "-var \"network={}\" "
+                   "-var \"net_octet={}\" "
                    "-var \"cores={}\" "
                    "-var \"ram={}\" "
-                   "-var \"count={}\"".
-                   format(self.basename, self.image, self.networks[0],
+                   "-var \"num_domains={}\"".
+                   format(self.basename, self.image, self.net_octet,
                           self.cores, self.ram, self.num_domains))
             if ('LOG_COLORS' not in os.environ):
                 cmd = ("{} -no-color".format(cmd))
@@ -212,11 +206,11 @@ class TerraformEnv(object):
             cmd = ("terraform destroy -auto-approve "
                    "-var \"basename={}\" "
                    "-var \"image={}\" "
-                   "-var \"network={}\" "
+                   "-var \"net_octet={}\" "
                    "-var \"cores={}\" "
                    "-var \"ram={}\" "
-                   "-var \"count={}\"".
-                   format(self.basename, self.image, self.networks[0],
+                   "-var \"num_domains={}\"".
+                   format(self.basename, self.image, self.net_octet,
                           self.cores, self.ram, self.num_domains))
             if ('LOG_COLORS' not in os.environ):
                 cmd = ("{} -no-color".format(cmd))

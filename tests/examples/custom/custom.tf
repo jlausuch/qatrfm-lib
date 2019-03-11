@@ -1,8 +1,4 @@
-variable "count" {
-    default = "2"
-}
-
-variable "network" {
+variable "net_octet" {
 }
 
 variable "image" {
@@ -17,36 +13,46 @@ provider "libvirt" {
 
 resource "libvirt_volume" "myvdisk" {
   name = "qatrfm-vdisk-${var.basename}-${count.index}.qcow2"
-  count = "${var.count}"
+  count = 2
   pool = "default"
   source = "${var.image}"
   format = "qcow2"
 }
 
-resource "libvirt_network" "my_net" {
-   name = "qatrfm-net-${var.basename}"
-   addresses = ["${var.network}"]
+resource "libvirt_network" "my_net1" {
+   name = "qatrfm-net-${var.basename}-1"
+   addresses = ["10.${var.net_octet}.10.0/24"]
    dhcp {
-		enabled = false
-	}
+        enabled = true
+   }
+   bridge="qatrfm-br-1"
+}
+
+resource "libvirt_network" "my_net2" {
+   name = "qatrfm-net-${var.basename}-2"
+   addresses = ["10.${var.net_octet}.20.0/24"]
+   dhcp {
+        enabled = true
+   }
+   bridge="qatrfm-br-2"
 }
 
 resource "libvirt_domain" "domain-sle" {
   name = "qatrfm-vm-${var.basename}-${count.index}"
   memory = "2048"
   vcpu = 2
-  count = "${var.count}"
+  count = 2
 
   network_interface {
-    network_id = "${libvirt_network.my_net.id}"
-    wait_for_lease = false
-    addresses = ["0.0.0.0"]
+    network_id = "${libvirt_network.my_net1.id}"
+    #network_name = "qatrfm-net-${var.basename}-1"
+    wait_for_lease = true
   }
 
   network_interface {
-    network_id = "${libvirt_network.my_net.id}"
-    wait_for_lease = false
-    addresses = ["0.0.0.0"]
+    network_id = "${libvirt_network.my_net2.id}"
+    #network_name = "qatrfm-net-${var.basename}-2"
+    wait_for_lease = true
   }
 
   disk {

@@ -98,9 +98,9 @@ def cli(test, path, image, num_domains, cores, ram, snapshots, no_clean):
                 "\t\t  Image  : {}\n"
                 "\t\t  Cores  : {}\n"
                 "\t\t  RAM    : {}\n"
-                "\t\t  Network: {}\n"
+                "\t\t  Network: 10.{}.0.0/24\n"
                 .format(test, env.workdir, not no_clean, snapshots,
-                        num_domains, image, cores, ram, env.networks[0]))
+                        num_domains, image, cores, ram, env.net_octet))
 
     failed_tests = []
 
@@ -133,5 +133,5 @@ def cli(test, path, image, num_domains, cores, ram, snapshots, no_clean):
                          format(failed_tests))
             sys.exit(TrfmTestCase.EX_FAILURE)
         else:
-            logger.success("Overall status = GREEN")
+            logger.success("All tests passed")
             sys.exit(TrfmTestCase.EX_OK)
