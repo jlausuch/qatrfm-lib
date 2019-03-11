@@ -3,3 +3,4 @@
 # process, which may cause wedges in the gate later.
 paramiko # LGPLv2.1+
 click
+flake8
