@@ -14,6 +14,8 @@ class CustomTest(TrfmTestCase):
 
     def run(self):
         self.logger.info('Running test case {}'.format(self.name))
-        vm = self.env.domains[0]
-        [retcode, output] = vm.execute_cmd('ip address show')
+        vm1 = self.env.domains[0]
+        vm2 = self.env.domains[1]
+        vm1.execute_cmd('ip address show')
+        vm2.execute_cmd('ip address show')
         return self.EX_OK
