@@ -45,7 +45,6 @@ class TerraformEnv(object):
         self.workdir = tempfile.mkdtemp()
         self.logger.debug("Using working directory {}".format(self.workdir))
         shutil.copy(self.tf_file, self.workdir + '/env.tf')
-        os.chdir(self.workdir)
         self.domains = []
         self.net_octet = self.get_network_octet()
         self.logger.debug("Using network 10.{}.0.0/24".format(self.net_octet))
@@ -81,7 +80,7 @@ class TerraformEnv(object):
         return x
 
     @staticmethod
-    def get_domains():
+    def get_domains(self):
         """
         Return an array of Domain objects
 
@@ -89,11 +88,11 @@ class TerraformEnv(object):
         """
         domains = []
         cmd = "terraform output -json domain_names"
-        [ret, output] = libutils.execute_bash_cmd(cmd)
+        [ret, output] = libutils.execute_bash_cmd(cmd, cwd=self.workdir)
         domain_names = json.loads(output)['value']
 
         cmd = "terraform output -json domain_ips"
-        [ret, output] = libutils.execute_bash_cmd(cmd)
+        [ret, output] = libutils.execute_bash_cmd(cmd, cwd=self.workdir)
         domain_ips = json.loads(output)['value']
 
         # format of domain_names: ['name1', 'name2']
@@ -125,7 +124,7 @@ class TerraformEnv(object):
             cmd = 'terraform init'
             if ('LOG_COLORS' not in os.environ):
                 cmd = ("{} -no-color".format(cmd))
-            [ret, output] = libutils.execute_bash_cmd(cmd)
+            [ret, output] = libutils.execute_bash_cmd(cmd, cwd=self.workdir)
         except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
             self.logger.error(e)
             self.clean(remove_terraform_env=False)
@@ -137,7 +136,8 @@ class TerraformEnv(object):
                    format(self.basename, self.net_octet, self.tf_vars))
             if ('LOG_COLORS' not in os.environ):
                 cmd = ("{} -no-color".format(cmd))
-            [ret, output] = libutils.execute_bash_cmd(cmd, timeout=400)
+            [ret, output] = libutils.execute_bash_cmd(cmd, timeout=400,
+                                                      cwd=self.workdir)
         except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
             self.logger.error(e)
             self.clean()
@@ -193,7 +193,8 @@ class TerraformEnv(object):
             if ('LOG_COLORS' not in os.environ):
                 cmd = ("{} -no-color".format(cmd))
             try:
-                [ret, output] = libutils.execute_bash_cmd(cmd)
+                [ret, output] = libutils.execute_bash_cmd(
+                    cmd, cwd=self.workdir)
             except (libutils.TrfmCommandFailed,
                     libutils.TrfmCommandTimeout) as e:
                 self.logger.error(e)
