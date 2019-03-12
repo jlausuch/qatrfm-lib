@@ -23,6 +23,7 @@ import shutil
 import string
 import sys
 import time
+import tempfile
 
 from qatrfm.domain import Domain
 from qatrfm.utils.logger import QaTrfmLogger
@@ -32,7 +33,6 @@ from qatrfm.utils import libutils
 class TerraformEnv(object):
 
     logger = QaTrfmLogger.getQatrfmLogger(__name__)
-    BASEDIR = '/root/terraform/'
 
     def __init__(self, tf_vars, tf_file=None, snapshots=False):
         """Initialize Terraform Environment object."""
@@ -42,9 +42,8 @@ class TerraformEnv(object):
         self.snapshots = snapshots
         letters = string.ascii_lowercase
         self.basename = ''.join(random.choice(letters) for i in range(10))
-        self.workdir = self.BASEDIR + self.basename
-        os.makedirs(self.workdir)
-        self.logger.info("Using working directory {}".format(self.workdir))
+        self.workdir = tempfile.mkdtemp()
+        self.logger.debug("Using working directory {}".format(self.workdir))
         shutil.copy(self.tf_file, self.workdir + '/env.tf')
         os.chdir(self.workdir)
         self.domains = []
