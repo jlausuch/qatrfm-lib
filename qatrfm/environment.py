@@ -79,7 +79,6 @@ class TerraformEnv(object):
             raise Exception("Cannot find available network range")
         return x
 
-    @staticmethod
     def get_domains(self):
         """
         Return an array of Domain objects
