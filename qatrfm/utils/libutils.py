@@ -40,11 +40,7 @@ class TrfmSnapshotFailed(Exception):
     pass
 
 
-class TrfmMissingVariable(Exception):
-    pass
-
-
-def execute_bash_cmd(cmd, timeout=300, exit_on_failure=True):
+def execute_bash_cmd(cmd, timeout=300, exit_on_failure=True, cwd=os.getcwd()):
     logger.debug("Bash command: '{}'".format(cmd))
     output = ''
 
@@ -58,7 +54,7 @@ def execute_bash_cmd(cmd, timeout=300, exit_on_failure=True):
 
     p = subprocess.Popen(cmd, shell=True,
                          stdout=subprocess.PIPE,
-                         stderr=subprocess.STDOUT)
+                         stderr=subprocess.STDOUT, cwd=cwd)
     timer = Timer(timeout, timer_finished, args=[p])
     timer.start()
     for line in iter(p.stdout.readline, b''):
