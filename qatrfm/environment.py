@@ -24,6 +24,7 @@ import string
 import sys
 import time
 import tempfile
+from pathlib import Path
 
 from qatrfm.domain import Domain
 from qatrfm.utils.logger import QaTrfmLogger
@@ -53,7 +54,10 @@ class TerraformEnv(object):
     def vars_to_string(vars):
         s = ''
         for v in vars:
-            s += "-var '{}' ".format(v)
+            kv = v.split('=', 1)
+            if (Path(kv[1]).is_file()):
+                kv[1] = Path(kv[1]).resolve()
+            s += "-var '{}={}' ".format(kv[0], kv[1])
         return s
 
     @staticmethod
