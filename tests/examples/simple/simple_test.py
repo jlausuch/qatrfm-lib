@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+from pathlib import Path
 
 from qatrfm.testcase import TrfmTestCase
 from qatrfm.utils.logger import QaTrfmLogger
@@ -21,9 +22,11 @@ class SimpleTest(TrfmTestCase):
         vm1 = self.env.domains[0]
 
         # Transfering a file from a VM
+        out_file = Path(self.env.workdir) / 'resolv.conf'
         vm1.transfer_file(remote_file_path='/etc/resolv.conf',
-                          local_file_path='/root/test.resolv.conf',
+                          local_file_path=out_file,
                           type='get')
+        logger.success(out_file.read_text())
 
         # Transfer file to a VM
         vm1.transfer_file(remote_file_path='/root/test_file',
