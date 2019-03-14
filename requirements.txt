@@ -4,3 +4,4 @@
 paramiko # LGPLv2.1+
 click
 flake8
+tempfile2
