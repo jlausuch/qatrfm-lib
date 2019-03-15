@@ -17,13 +17,14 @@ use to create the libvirt objects (networks, disks, domains)
 """
 
 import json
-import random
 import os
 import shutil
 import string
 import sys
-import time
+import random
 import tempfile
+import time
+
 from pathlib import Path
 
 from qatrfm.domain import Domain
@@ -35,7 +36,7 @@ class TerraformEnv(object):
 
     logger = QaTrfmLogger.getQatrfmLogger(__name__)
 
-    def __init__(self, tf_vars, tf_file=None, snapshots=False):
+    def __init__(self, net_octet, tf_vars, tf_file=None, snapshots=False):
         """Initialize Terraform Environment object."""
         self.tf_file = tf_file
         self.tf_vars = self.vars_to_string(tf_vars)
@@ -47,8 +48,7 @@ class TerraformEnv(object):
         self.logger.debug("Using working directory {}".format(self.workdir))
         shutil.copy(self.tf_file, self.workdir + '/env.tf')
         self.domains = []
-        self.net_octet = self.get_network_octet()
-        self.logger.debug("Using network 10.{}.0.0/24".format(self.net_octet))
+        self.net_octet = net_octet
 
     @staticmethod
     def vars_to_string(vars):
@@ -59,29 +59,6 @@ class TerraformEnv(object):
                 kv[1] = Path(kv[1]).resolve()
             s += "-var '{}={}' ".format(kv[0], kv[1])
         return s
-
-    @staticmethod
-    def get_network_octet():
-        """
-        Find a non-used network in the system
-
-        To allow multiple environments co-exist, network ranges can't be
-        hardcoded. Otherwise, new libvirt virtual networks can't be created.
-        The default environment will create a network with range 10.X.0.0/24,
-        where X will be calculated dynamically according to the existing
-        networks on the system, starting from X=0, this offers 255 possible
-        isolated environments running at the same time.
-        """
-        [ret, output] = libutils.execute_bash_cmd('ip a')
-        x = 0
-        while x < 255:
-            if "10.{}.0.".format(x) in output:
-                x += 1
-            else:
-                break
-        if x == 255:
-            raise Exception("Cannot find available network range")
-        return x
 
     def get_domains(self):
         """
