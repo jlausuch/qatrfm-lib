@@ -134,7 +134,7 @@ class TerraformEnv(object):
             sys.exit(-1)
 
         try:
-            cmd = ("terraform apply -auto-approve "
+            cmd = ("terraform apply -input=false -auto-approve "
                    "-var 'basename={}' -var 'net_octet={}' {}".
                    format(self.basename, self.net_octet, self.tf_vars))
             if ('LOG_COLORS' not in os.environ):
@@ -190,7 +190,7 @@ class TerraformEnv(object):
                     except libutils.TrfmSnapshotFailed as e:
                         shutil.rmtree(self.workdir)
                         raise(e)
-            cmd = ("terraform destroy -auto-approve "
+            cmd = ("terraform destroy -input=false -auto-approve "
                    "-var 'basename={}' -var 'net_octet={}' {}".
                    format(self.basename, self.net_octet, self.tf_vars))
             if ('LOG_COLORS' not in os.environ):
