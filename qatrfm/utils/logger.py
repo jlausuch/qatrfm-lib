@@ -11,57 +11,66 @@
 """ QaTrfm custom Logger Class
 
 It defines a specific format of the log messages.
-If LOG_COLORS=1 is exported, it will print the messages in different colors
-according to it's level.
 """
 
 import logging
-import os
 
 
 class QaTrfmLogger(logging.Logger):
 
-    def __init__(self, logger_name, level="DEBUG"):
+    colors = False
+
+    def __init__(self, logger_name):
         """Initialize QaTrfmLogger Class"""
-        self.colors = False
-        if ('LOG_COLORS' in os.environ):
-            self.colors = True
-            format = "\033[37;48mqatrfm.%(levelname)s: \033[0m%(message)s"
-        else:
-            self.colors = False
-            format = "qatrfm.%(levelname)s: %(message)s"
-        logging.basicConfig(level=logging.DEBUG, format=format)
-        return super(QaTrfmLogger, self).__init__(logger_name, level)
+        return super().__init__(logger_name)
+
+    @staticmethod
+    def colorize(msg, color):
+        COLORS_MAP = {
+                'blue': 34, 'green': 32, 'red': 31, 'yellow': 33,
+                'lightgrey': 37
+                }
+        if color in COLORS_MAP.keys():
+            return "\033[1;{}m{}\033[0m".format(COLORS_MAP[color], msg)
+        return msg
 
     def info(self, msg, *args, **kwargs):
-        if (self.colors):
-            msg = ("\033[1;34m {}\033[0m".format(msg))
-        else:
-            msg = (" {}".format(msg))
-        super(QaTrfmLogger, self).info(msg, *args, **kwargs)
+        if (QaTrfmLogger.colors):
+            msg = QaTrfmLogger.colorize(msg, 'blue')
+        super().info(msg, *args, **kwargs)
 
     def success(self, msg, *args, **kwargs):
-        if (self.colors):
-            msg = ("\033[1;32m {}\033[0m".format(msg))
-        else:
-            msg = (" {}".format(msg))
-        super(QaTrfmLogger, self).info(msg, *args, **kwargs)
+        if (QaTrfmLogger.colors):
+            msg = QaTrfmLogger.colorize(msg, 'green')
+        super().info(msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
-        if (self.colors):
-            msg = ("\033[1;31m{}\033[0m".format(msg))
-        super(QaTrfmLogger, self).error(msg, *args, **kwargs)
+        if (QaTrfmLogger.colors):
+            msg = QaTrfmLogger.colorize(msg, 'red')
+        super().error(msg, *args, **kwargs)
+
+    def critical(self, msg, *args, **kwargs):
+        if (QaTrfmLogger.colors):
+            msg = QaTrfmLogger.colorize(msg, 'red')
+        super().critical(msg, *args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
-        if (self.colors):
-            msg = ("\033[1;33m{}\033[0m".format(msg))
-        super(QaTrfmLogger, self).warning(msg, *args, **kwargs)
+        if (QaTrfmLogger.colors):
+            msg = QaTrfmLogger.colorize(msg, 'yellow')
+        super().warning(msg, *args, **kwargs)
 
     @staticmethod
     def getQatrfmLogger(name):
+        logging.setLoggerClass(QaTrfmLogger)
         return logging.getLogger(name)
 
 
-logging.setLoggerClass(QaTrfmLogger)
-logging.getLogger("paramiko.transport").setLevel(logging.WARNING)
-logging.getLogger("paramiko.transport.sftp").setLevel(logging.WARNING)
+def init_logging(level, colors):
+    fmt = "%(levelname)-8s %(name)-12s: %(message)s"
+    if colors:
+        fmt = QaTrfmLogger.colorize(fmt[:-11], 'lightgrey')
+        fmt += '%(message)s'
+    logging.basicConfig(level=level, format=fmt)
+    logging.getLogger("paramiko.transport").setLevel(logging.WARNING)
+    logging.getLogger("paramiko.transport.sftp").setLevel(logging.WARNING)
+    QaTrfmLogger.colors = colors

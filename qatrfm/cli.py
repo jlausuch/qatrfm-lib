@@ -22,7 +22,7 @@ import sys
 
 from qatrfm.environment import TerraformEnv
 from qatrfm.utils import libutils
-from qatrfm.utils.logger import QaTrfmLogger
+from qatrfm.utils.logger import QaTrfmLogger, init_logging
 from qatrfm.testcase import TrfmTestCase
 
 
@@ -76,9 +76,15 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'],
 @click.option('--no-clean', 'no_clean', is_flag=True,
               help="Don't clean the environment when the tests finish. "
               "This is useful for debug and troubleshooting.")
-def cli(test, path, tfvar, snapshots, no_clean):
+@click.option('--loglevel', 'loglevel', type=click.Choice([
+              'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG']),
+              default='DEBUG', help="Specify default log level")
+@click.option('--log-colors', 'logcolors', is_flag=True, help="Show different "
+              "loglevels in different colors", envvar='LOG_COLORS')
+def cli(test, path, tfvar, snapshots, no_clean, loglevel, logcolors):
     """ Create a terraform environment and run the test(s)"""
 
+    init_logging(loglevel, logcolors)
     logger = QaTrfmLogger.getQatrfmLogger(__name__)
     test_array = test.split(',')
 
