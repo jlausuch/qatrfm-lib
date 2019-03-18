@@ -13,8 +13,8 @@ Allows calling this library in a simple way via CLI based on Click with only
 one command that creates the environment runs the tests.
 """
 
-
 import click
+import fcntl
 import importlib.util
 import inspect
 import sys
@@ -22,7 +22,10 @@ from pathlib import Path
 
 from qatrfm.environment import TerraformEnv
 from qatrfm.utils.logger import QaTrfmLogger, init_logging
+from qatrfm.utils import libutils
 from qatrfm.testcase import TrfmTestCase
+
+file_lock = None
 
 
 def print_version(ctx, param, value):
@@ -87,6 +90,35 @@ def find_testcases(opt_test: Path):
     return load_testcases(basedir, files)
 
 
+def get_network_octet():
+    """
+    Find a non-used network in the system
+
+    To allow multiple environments co-exist, network ranges can't be
+    hardcoded. Otherwise, new libvirt virtual networks can't be created.
+    The default environment will create a network with range 10.X.0.0/24,
+    where X will be calculated dynamically according to the existing
+    networks on the system, starting from X=0, this offers 255 possible
+    isolated environments running at the same time.
+    """
+    global file_lock
+    locks_dir = '/tmp/qatrfm'
+    Path(locks_dir).mkdir(exist_ok=True)
+    x = 0
+    while x < 255:
+        try:
+            file_lock = open('{}/{}'.format(locks_dir, x), 'a')
+            [ret, output] = libutils.execute_bash_cmd(
+                'ip a|grep 10.{}||true'.format(x))
+            if output == '':
+                fcntl.flock(file_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return x
+        except IOError:
+            pass
+        x += 1
+    raise Exception("Cannot find available network range")
+
+
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'],
                         max_content_width=200)
 
@@ -121,7 +153,11 @@ def cli(test, tfvar, snapshots, no_clean, loglevel, logcolors):
 
     testcases = find_testcases(Path(test))
     for tf_file in testcases.keys():
-        env = TerraformEnv(tf_vars=tfvar, tf_file=tf_file, snapshots=snapshots)
+        net_octet = get_network_octet()
+        env = TerraformEnv(net_octet=net_octet,
+                           tf_vars=tfvar,
+                           tf_file=tf_file,
+                           snapshots=snapshots)
         logger.info(("Test case information:\n"
                      "\tTF_file      : {}\n"
                      "\tTests        : {}\n"
@@ -133,8 +169,7 @@ def cli(test, tfvar, snapshots, no_clean, loglevel, logcolors):
                      "{}").format(
                           str(tf_file),
                           ",".join([t.__name__ for t in testcases[tf_file]]),
-                          env.workdir,
-                          env.net_octet, not no_clean, snapshots,
+                          env.workdir, net_octet, not no_clean, snapshots,
                           "\n".join(["\t\t{}".format(v) for v in tfvar])
                    ))
 
