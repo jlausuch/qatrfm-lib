@@ -12,24 +12,10 @@ import json
 
 
 def generate_guest_exec_str(domain, cmd):
-    str = ("virsh -c qemu:///system qemu-agent-command --domain {} --cmd "
-           "\'{{ \"execute\": \"guest-exec\", \"arguments\": {{ \"path\": "
-           .format(domain))
-
-    if ' ' in cmd:
-        cmds = cmd.split(' ')
-        str += '\"{}\", \"arg\": ['.format(cmds[0])
-        i = 1
-        while i < len(cmds):
-            str += '\"{}\"'.format(cmds[i])
-            if (i < len(cmds) - 1):
-                str += ', '
-            i += 1
-        str += '], '
-    else:
-        str += '\"{}\", '.format(cmd)
-    str += '\"capture-output\": true }}\''
-    return str
+    return ('virsh -c qemu:///system qemu-agent-command --domain {} --cmd '
+            '\'{{ \"execute\": \"guest-exec\", \"arguments\": {{ \"path\": '
+            '\"bash\", \"arg\": [\"-c\", \"{}\"], \"capture-output\": true'
+            '}}}}\''.format(domain, cmd))
 
 
 def generate_guest_exec_status(domain, pid):

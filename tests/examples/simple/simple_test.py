@@ -21,6 +21,10 @@ class SimpleTest(TrfmTestCase):
 
         vm1 = self.env.domains[0]
 
+        # Using qemu-agent to execute commands
+        vm1.execute_cmd('echo -e "foo\nbar" > /root/some_file')
+        vm1.execute_cmd('cat /root/some_file | grep ba')
+
         # Transfering a file from a VM
         out_file = Path(self.env.workdir) / 'resolv.conf'
         vm1.transfer_file(remote_file_path='/etc/resolv.conf',
