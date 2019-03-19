@@ -60,6 +60,7 @@ class Domain(object):
         For more info about qemu agent, refer to:
             https://wiki.libvirt.org/page/Qemu_guest_agent
         """
+        cmd = cmd.replace('"', '\\"').replace('\n', '\\n')
         self.logger.debug("execute_cmd '{}'".format(cmd))
         str = qau.generate_guest_exec_str(self.name, cmd)
         out_json = libutils.execute_bash_cmd(str)[1]
