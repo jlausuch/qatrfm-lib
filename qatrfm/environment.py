@@ -127,10 +127,11 @@ class TerraformEnv(object):
 
         self.logger.info("Waiting for domains to be ready...")
         for domain in self.domains:
-            domain.wait_for_qemu_agent_ready()
-            if (domain.ip is not None):
+            if (domain.ip):
                 domain.wait_for_ip_ready()
                 domain.wait_for_ssh_ready()
+            else:
+                domain.wait_for_qemu_agent_ready()
 
         if (self.snapshots):
             self.logger.debug("Creating snapshots of domains...")

@@ -40,6 +40,10 @@ class TrfmSnapshotFailed(Exception):
     pass
 
 
+class TrfmQemuAgentNotReady(Exception):
+    pass
+
+
 def execute_bash_cmd(cmd, timeout=300, exit_on_failure=True, cwd=os.getcwd()):
     logger.debug("Bash command: '{}'".format(cmd))
     output = ''
