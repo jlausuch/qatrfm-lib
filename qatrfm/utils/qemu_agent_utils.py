@@ -24,6 +24,11 @@ def generate_guest_exec_status(domain, pid):
             ' {{ \"pid\": {} }}}}\''.format(domain, pid))
 
 
+def generate_guest_ping_str(domain):
+    return ('virsh -c qemu:///system qemu-agent-command --domain {} --cmd '
+            '\'{{ \"execute\": \"guest-ping\"}}\''.format(domain))
+
+
 def get_pid(str):
     return json.loads(str)["return"]["pid"]
 

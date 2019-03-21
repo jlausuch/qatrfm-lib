@@ -60,6 +60,10 @@ class Domain(object):
         For more info about qemu agent, refer to:
             https://wiki.libvirt.org/page/Qemu_guest_agent
         """
+        if not self.check_qemu_agent():
+            raise libutils.TrfmQemuAgentNotReady("Qemu-agent is not running "
+                                                 "on the domain")
+
         cmd = cmd.replace('"', '\\"').replace('\n', '\\n')
         self.logger.debug("execute_cmd '{}'".format(cmd))
         str = qau.generate_guest_exec_str(self.name, cmd)
@@ -108,7 +112,6 @@ class Domain(object):
             (_, stdout, stderr) = self.ssh.exec_command(cmd)
             i = 0
             while not stdout.channel.eof_received:
-                print(i)
                 time.sleep(1)
                 if i > timeout:
                     self.ssh.close()
@@ -146,6 +149,14 @@ class Domain(object):
             self.logger.error("The domain failed to execute the command.")
             raise(e)
 
+    def check_qemu_agent(self):
+        str = qau.generate_guest_ping_str(self.name)
+        try:
+            libutils.execute_bash_cmd(str)
+            return True
+        except libutils.TrfmCommandFailed:
+            return False
+
     def wait_for_qemu_agent_ready(self, timeout=300):
         """
         Waits for qemu agent available in the domain by running a simple
@@ -153,14 +164,13 @@ class Domain(object):
         """
         i = 0
         while (i < int(timeout / 10)):
-            try:
-                self.execute_cmd("hostname")
-                self.logger.debug("Qemu agent ready on '{}'".format(self.name))
+            if self.check_qemu_agent():
                 return
-            except libutils.TrfmCommandFailed:
+            else:
                 i += 1
                 time.sleep(10)
-        raise libutils.TrfmDomainTimeout
+        raise libutils.TrfmDomainTimeout("Qemu-agent is not available on the "
+                                         "domain {}.".format(self.name))
 
     def wait_for_ip_ready(self, timeout=300):
         """
