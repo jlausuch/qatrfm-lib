@@ -127,8 +127,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'],
 @click.option('--version', '-v', is_flag=True, callback=print_version,
               expose_value=False, is_eager=True)
 @click.option('--test', '-t', required=True,
-              help='Testcase(s) name(s). Single name or a list separated by '
-              'comas of the Class(es) in path to be executed.')
+              help='Path where the tests are located.')
 @click.option('--tfvar', type=str, multiple=True, help='Variable to '
               'insert to the .tf file. It can be used multiple times '
               'for each single variable. At least tfvar "image" should be '
