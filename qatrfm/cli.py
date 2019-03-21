@@ -108,7 +108,7 @@ def get_network_octet():
     while x < 255:
         try:
             file_lock = open('{}/{}'.format(locks_dir, x), 'a')
-            [ret, output] = libutils.execute_bash_cmd(
+            output = libutils.execute_bash_cmd(
                 'ip a|grep 10.{}||true'.format(x))
             if output == '':
                 fcntl.flock(file_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)

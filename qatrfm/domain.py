@@ -67,13 +67,13 @@ class Domain(object):
         cmd = cmd.replace('"', '\\"').replace('\n', '\\n')
         self.logger.debug("execute_cmd '{}'".format(cmd))
         str = qau.generate_guest_exec_str(self.name, cmd)
-        out_json = libutils.execute_bash_cmd(str)[1]
+        out_json = libutils.execute_bash_cmd(str)
         pid = qau.get_pid(out_json)
         self.logger.debug("The command has PID={}".format(pid))
         i = 0
         str = qau.generate_guest_exec_status(self.name, pid)
         while i < timeout:
-            out_json = libutils.execute_bash_cmd(str)[1]
+            out_json = libutils.execute_bash_cmd(str)
             if qau.process_is_exited(out_json):
                 retcode = qau.get_ret_code(out_json)
                 output = qau.get_output(out_json)
@@ -183,7 +183,7 @@ class Domain(object):
         while (i < int(timeout / 10)):
             try:
                 cmd = "ping -c 1 {}".format(self.ip)
-                [ret, output] = libutils.execute_bash_cmd(cmd)
+                libutils.execute_bash_cmd(cmd)
                 self.logger.debug("IP '{}' reachable".format(self.ip))
                 return
             except libutils.TrfmCommandFailed:
@@ -202,7 +202,7 @@ class Domain(object):
         while (i < int(timeout / 10)):
             try:
                 cmd = "nc -vz -w 1 {} 22".format(self.ip)
-                [ret, output] = libutils.execute_bash_cmd(cmd)
+                libutils.execute_bash_cmd(cmd)
                 self.logger.debug("SSH on port 22 reachable")
                 return
             except libutils.TrfmCommandFailed:
@@ -228,7 +228,7 @@ class Domain(object):
             cmd = ("virsh snapshot-revert {} --current".
                    format(self.name, self.name))
         try:
-            [ret, output] = libutils.execute_bash_cmd(cmd)
+            libutils.execute_bash_cmd(cmd)
         except libutils.TrfmCommandFailed as e:
             self.logger.error("Failed to {} snapshot of domain {}."
                               .format(action, self.name))
