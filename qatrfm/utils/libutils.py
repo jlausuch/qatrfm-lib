@@ -54,7 +54,7 @@ def execute_bash_cmd(cmd, timeout=300, exit_on_failure=True, cwd=os.getcwd()):
         os.killpg(os.getpgid(p.pid), signal.SIGTERM)
         if exit_on_failure:
             raise TrfmCommandTimeout(output)
-        return [-1, output]
+        return output
 
     p = subprocess.Popen(cmd, shell=True,
                          stdout=subprocess.PIPE,
@@ -69,4 +69,4 @@ def execute_bash_cmd(cmd, timeout=300, exit_on_failure=True, cwd=os.getcwd()):
     timer.cancel()
     if (retcode != 0 and exit_on_failure):
         raise TrfmCommandFailed(output)
-    return [retcode, output]
+    return output

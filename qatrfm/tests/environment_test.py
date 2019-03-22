@@ -25,7 +25,7 @@ class TestTerraformEnv(object):
     NET_OCTET = 0
 
     @mock.patch('qatrfm.utils.libutils.execute_bash_cmd',
-                return_value=[0, EXEC_RETURN])
+                return_value=EXEC_RETURN)
     @mock.patch('shutil.copy')
     @mock.patch('tempfile.mkdtemp', return_value=TMP_FOLDER)
     def test_init_only_vars(self, mock_mkdtemp, mock_copy, mock_exec):
@@ -42,7 +42,7 @@ class TestTerraformEnv(object):
             TerraformEnv()
 
     @mock.patch('qatrfm.utils.libutils.execute_bash_cmd',
-                return_value=[0, EXEC_RETURN])
+                return_value=EXEC_RETURN)
     @mock.patch('shutil.copy')
     @mock.patch('tempfile.mkdtemp', return_value=TMP_FOLDER)
     def test_init_with_file(self, mock_mkdtemp, mock_copy, mock_exec):
