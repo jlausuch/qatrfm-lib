@@ -8,7 +8,6 @@
 # without any warranty.
 
 import pytest
-import re
 
 from unittest import mock
 
@@ -29,12 +28,16 @@ class TestTerraformEnv(object):
     @mock.patch('shutil.copy')
     @mock.patch('tempfile.mkdtemp', return_value=TMP_FOLDER)
     def test_init_only_vars(self, mock_mkdtemp, mock_copy, mock_exec):
-        mocked_TerraformEnv = TerraformEnv(self.NET_OCTET, self.TFVARS)
+        mocked_TerraformEnv = TerraformEnv(
+            self.NET_OCTET, self.TFVARS, self.FILENAME)
         assert isinstance(mocked_TerraformEnv, TerraformEnv)
         assert mocked_TerraformEnv.net_octet == self.NET_OCTET
-        assert re.match(
-            r'(-var \'var\d=val\d\' ){3}', mocked_TerraformEnv.tf_vars)
-        assert mocked_TerraformEnv.tf_file is None
+        for i in range(1, 3):
+            assert 'var{}=val{}'.format(i, i) in mocked_TerraformEnv.tf_vars
+        assert 'basename=' + mocked_TerraformEnv.basename in \
+            mocked_TerraformEnv.tf_vars
+        assert 'net_octet=0' in mocked_TerraformEnv.tf_vars
+        assert mocked_TerraformEnv.tf_file == self.FILENAME
         assert mocked_TerraformEnv.snapshots is False
 
     def test_init_no_vars(self):
