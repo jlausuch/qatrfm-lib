@@ -32,23 +32,18 @@ from qatrfm.utils.logger import QaTrfmLogger
 from qatrfm.utils import libutils
 
 
-class TerraformEnv(object):
+class TerraformCmd:
 
     logger = QaTrfmLogger.getQatrfmLogger(__name__)
 
-    def __init__(self, net_octet, tf_vars, tf_file=None, snapshots=False):
-        """Initialize Terraform Environment object."""
+    def __init__(self, tf_file, tf_vars=None):
         self.tf_file = tf_file
-        self.tf_vars = self.vars_to_string(tf_vars)
         self.logger.info("Terraform TF file: {}".format(self.tf_file))
-        self.snapshots = snapshots
-        letters = string.ascii_lowercase
-        self.basename = ''.join(random.choice(letters) for i in range(10))
+        if tf_vars:
+            self.tf_vars = TerraformCmd.vars_to_string(tf_vars)
         self.workdir = tempfile.mkdtemp()
         self.logger.debug("Using working directory {}".format(self.workdir))
         shutil.copy(self.tf_file, self.workdir + '/env.tf')
-        self.domains = []
-        self.net_octet = net_octet
 
     @staticmethod
     def vars_to_string(vars):
@@ -59,6 +54,67 @@ class TerraformEnv(object):
                 kv[1] = Path(kv[1]).resolve()
             s += "-var '{}={}' ".format(kv[0], kv[1])
         return s
+
+    def deploy(self):
+        """ Deploy Environment
+
+        It creates the Terraform environment from the given .tf file
+
+        """
+
+        self.logger.info("Deploying Terraform Environment ...")
+
+        try:
+            cmd = 'terraform init'
+            if ('LOG_COLORS' not in os.environ):
+                cmd = ("{} -no-color".format(cmd))
+            libutils.execute_bash_cmd(cmd, cwd=self.workdir)
+        except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
+            self.logger.error(e)
+            sys.exit(-1)
+
+        try:
+            cmd = "terraform apply -input=false -auto-approve {}".format(
+                self.tf_vars)
+            if ('LOG_COLORS' not in os.environ):
+                cmd = ("{} -no-color".format(cmd))
+            libutils.execute_bash_cmd(cmd, timeout=400, cwd=self.workdir)
+        except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
+            self.logger.error(e)
+            self.clean()
+            sys.exit(-1)
+
+    def clean(self):
+        """ Destroys the Terraform environment """
+        self.logger.info("Removing Terraform Environment...")
+        cmd = "terraform destroy -input=false -auto-approve {}".format(
+            self.tf_vars)
+        if ('LOG_COLORS' not in os.environ):
+            cmd = ("{} -no-color".format(cmd))
+        try:
+            libutils.execute_bash_cmd(cmd, cwd=self.workdir)
+        except (libutils.TrfmCommandFailed,
+                libutils.TrfmCommandTimeout) as e:
+            self.logger.error(e)
+            shutil.rmtree(self.workdir)
+            raise(e)
+
+        shutil.rmtree(self.workdir)
+        self.logger.success("Environment clean")
+
+
+class TerraformEnv(TerraformCmd):
+
+    def __init__(self, net_octet, tf_vars, tf_file, snapshots=False):
+        """Initialize Terraform Environment object."""
+        self.snapshots = snapshots
+        letters = string.ascii_lowercase
+        self.basename = ''.join(random.choice(letters) for i in range(10))
+        self.domains = []
+        self.net_octet = net_octet
+        tf_vars.add('basename=' + self.basename)
+        tf_vars.add('net_octet={}'.format(self.net_octet))
+        super().__init__(tf_file, tf_vars)
 
     def get_domains(self):
         """
@@ -98,29 +154,7 @@ class TerraformEnv(object):
         at a certain point of the test flow.
         """
 
-        self.logger.info("Deploying Terraform Environment ...")
-
-        try:
-            cmd = 'terraform init'
-            if ('LOG_COLORS' not in os.environ):
-                cmd = ("{} -no-color".format(cmd))
-            libutils.execute_bash_cmd(cmd, cwd=self.workdir)
-        except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
-            self.logger.error(e)
-            self.clean(remove_terraform_env=False)
-            sys.exit(-1)
-
-        try:
-            cmd = ("terraform apply -input=false -auto-approve "
-                   "-var 'basename={}' -var 'net_octet={}' {}".
-                   format(self.basename, self.net_octet, self.tf_vars))
-            if ('LOG_COLORS' not in os.environ):
-                cmd = ("{} -no-color".format(cmd))
-            libutils.execute_bash_cmd(cmd, timeout=400, cwd=self.workdir)
-        except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
-            self.logger.error(e)
-            self.clean()
-            sys.exit(-1)
+        super().deploy()
 
         self.domains = self.get_domains()
 
@@ -156,29 +190,13 @@ class TerraformEnv(object):
                 shutil.rmtree(self.workdir)
                 raise(e)
 
-    def clean(self, remove_terraform_env=True):
+    def clean(self):
         """ Destroys the Terraform environment """
-        self.logger.info("Removing Terraform Environment...")
-        if (remove_terraform_env):
-            if (self.snapshots):
-                for domain in self.domains:
-                    try:
-                        domain.snapshot(action='delete')
-                    except libutils.TrfmSnapshotFailed as e:
-                        shutil.rmtree(self.workdir)
-                        raise(e)
-            cmd = ("terraform destroy -input=false -auto-approve "
-                   "-var 'basename={}' -var 'net_octet={}' {}".
-                   format(self.basename, self.net_octet, self.tf_vars))
-            if ('LOG_COLORS' not in os.environ):
-                cmd = ("{} -no-color".format(cmd))
-            try:
-                libutils.execute_bash_cmd(cmd, cwd=self.workdir)
-            except (libutils.TrfmCommandFailed,
-                    libutils.TrfmCommandTimeout) as e:
-                self.logger.error(e)
-                shutil.rmtree(self.workdir)
-                raise(e)
-
-        shutil.rmtree(self.workdir)
-        self.logger.success("Environment clean")
+        if (self.snapshots):
+            for domain in self.domains:
+                try:
+                    domain.snapshot(action='delete')
+                except libutils.TrfmSnapshotFailed as e:
+                    shutil.rmtree(self.workdir)
+                    raise(e)
+        super().clean()
