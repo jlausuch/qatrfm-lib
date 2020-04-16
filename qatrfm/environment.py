@@ -78,7 +78,7 @@ class TerraformCmd:
                 self.tf_vars)
             if ('LOG_COLORS' not in os.environ):
                 cmd = ("{} -no-color".format(cmd))
-            libutils.execute_bash_cmd(cmd, timeout=400, cwd=self.workdir)
+            libutils.execute_bash_cmd(cmd, timeout=1000, cwd=self.workdir)
         except (libutils.TrfmCommandFailed, libutils.TrfmCommandTimeout) as e:
             self.logger.error(e)
             self.clean()
@@ -101,6 +101,11 @@ class TerraformCmd:
 
         shutil.rmtree(self.workdir)
         self.logger.success("Environment clean")
+
+    def get_output(self, variable):
+        output = libutils.execute_bash_cmd(
+            "terraform output -json", cwd=self.workdir)
+        return json.loads(output)[variable]['value'][0]
 
 
 class TerraformEnv(TerraformCmd):
