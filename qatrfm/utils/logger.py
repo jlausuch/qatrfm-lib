@@ -27,9 +27,9 @@ class QaTrfmLogger(logging.Logger):
     @staticmethod
     def colorize(msg, color):
         COLORS_MAP = {
-                'blue': 34, 'green': 32, 'red': 31, 'yellow': 33,
-                'lightgrey': 37
-                }
+            'blue': 34, 'green': 32, 'red': 31, 'yellow': 33,
+            'lightgrey': 37
+        }
         if color in COLORS_MAP.keys():
             return "\033[1;{}m{}\033[0m".format(COLORS_MAP[color], msg)
         return msg
@@ -62,7 +62,14 @@ class QaTrfmLogger(logging.Logger):
     @staticmethod
     def getQatrfmLogger(name):
         logging.setLoggerClass(QaTrfmLogger)
-        return logging.getLogger(name)
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        logger = logging.getLogger(name)
+        logger.addHandler(handler)
+        return logger
 
 
 def init_logging(level, colors):
